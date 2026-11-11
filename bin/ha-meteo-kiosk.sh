@@ -140,6 +140,7 @@ else
   export MOZ_DISABLE_WAYLAND="${MOZ_DISABLE_WAYLAND:-1}"
   export MOZ_X11_EGL=0
   export GDK_BACKEND=x11
+  unset WAYLAND_DISPLAY
   firefox-esr -profile "$PROFILE" -no-remote -kiosk "$URL" &
 fi
 

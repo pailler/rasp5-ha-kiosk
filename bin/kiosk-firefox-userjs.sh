@@ -4,6 +4,9 @@ PROFILE="${1:-$HOME/.mozilla/kiosk-profile}"
 mkdir -p "$PROFILE"
 cat >"$PROFILE/user.js" <<'USERJS'
 user_pref("browser.sessionstore.resume_from_crash", false);
+user_pref("browser.sessionstore.resume_session_once", false);
+user_pref("browser.sessionstore.restore_on_demand", false);
+user_pref("browser.startup.page", 0);
 user_pref("toolkit.startup.max_resumed_crashes", -1);
 user_pref("full-screen-api.ignore-widgets", false);
 user_pref("dom.w3c_touch_events.enabled", 2);

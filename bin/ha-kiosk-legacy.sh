@@ -37,7 +37,27 @@ URL="$(KIOSK_USE_LEGACY_TOKEN=1 HA_URL="$HA_BASE" KIOSK_PATH="$PATH_VIEW" \
 
 PROFILE="${HOME}/.mozilla/kiosk-profile"
 mkdir -p "$PROFILE"
-rm -f "$PROFILE"/sessionstore.json* "$PROFILE"/sessionCheckpoints.json 2>/dev/null || true
+rm -f "$PROFILE"/sessionstore.json* "$PROFILE"/sessionCheckpoints.json "$PROFILE"/recovery.json 2>/dev/null || true
+rm -rf "$PROFILE"/sessionstore-backups 2>/dev/null || true
+mkdir -p "$PROFILE"/sessionstore-backups
+
+focus_ha_tab() {
+  sleep 1
+  if command -v wtype >/dev/null 2>&1; then
+    wtype -M ctrl -k 1 2>/dev/null || true
+  elif command -v xdotool >/dev/null 2>&1; then
+    xdotool key --clearmodifiers ctrl+1 2>/dev/null || true
+  fi
+}
+
+open_second_tab_background() {
+  local url="$1"
+  [ -z "$url" ] && return 0
+  /usr/bin/firefox-esr --no-remote --profile "$PROFILE" -remote "openURL(${url},new-background-tab)" 2>/dev/null \
+    || /usr/bin/firefox-esr --no-remote --profile "$PROFILE" -new-tab "$url" 2>/dev/null \
+    || true
+  focus_ha_tab
+}
 W=1920
 H=1080
 if [ "$KIOSK_FIREFOX_WAYLAND" != "1" ] && command -v xrandr >/dev/null 2>&1; then
@@ -58,22 +78,18 @@ LOG="${HOME}/kiosk.log"
 echo "=== ha-kiosk-legacy $(date) wayland=$KIOSK_FIREFOX_WAYLAND === URL=$URL" >>"$LOG"
 
 FF_CMD=(/usr/bin/firefox-esr --no-remote --profile "$PROFILE" --start-maximized)
-if [ -n "$SECOND_URL" ]; then
-  "${FF_CMD[@]}" "$URL" "$SECOND_URL" &
-  echo "2e onglet: $SECOND_URL" >>"$LOG"
-else
-  "${FF_CMD[@]}" "$URL" &
-fi
+"${FF_CMD[@]}" "$URL" &
 
-sleep 10
+sleep 12
 pgrep -f hide-desktop-loop >/dev/null || "${HOME}/bin/hide-desktop-loop.sh" &
 
+if [ -n "$SECOND_URL" ]; then
+  open_second_tab_background "$SECOND_URL"
+  echo "2e onglet (arrière-plan): $SECOND_URL" >>"$LOG"
+  focus_ha_tab
+fi
+
 if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ]; then
-  if [ -n "$SECOND_URL" ]; then
-    sleep 3
-    /usr/bin/firefox-esr --no-remote --profile "$PROFILE" -new-tab "$SECOND_URL" 2>/dev/null || true
-    echo "onglet iahome ouvert (-new-tab)" >>"$LOG"
-  fi
   pgrep -af "firefox-esr.*8123" | head -1 >>"$LOG"
   exit 0
 fi
@@ -110,6 +126,9 @@ for _ in 1 2 3 4 5; do
   [ "${WIDTH:-0}" -ge "$((W - 20))" ] && [ "${HEIGHT:-0}" -ge "$((H - 20))" ] && break
 done
 xdotool windowactivate --sync "$WID" 2>/dev/null || true
+if [ -n "$SECOND_URL" ]; then
+  focus_ha_tab
+fi
 
 pgrep -af "firefox-esr.*8123" | head -1 >>"$LOG"
 exit 0

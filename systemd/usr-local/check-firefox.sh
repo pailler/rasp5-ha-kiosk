@@ -12,4 +12,4 @@ exec runuser -u "${KIOSK_USER}" -- env \
   DISPLAY=:0 \
   XDG_RUNTIME_DIR="/run/user/${KIOSK_UID}" \
   DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${KIOSK_UID}/bus" \
-  "${KIOSK_HOME}/bin/ha-meteo-kiosk.sh"
+  "${KIOSK_HOME}/bin/kiosk-launch.sh"

@@ -13,7 +13,7 @@ LOG="${HOME}/veille.log"
 
   systemctl --user start hide-desktop.service firefox-geometry-guard.service 2>/dev/null || true
 
-  if "${HOME}/bin/ha-meteo-kiosk.sh"; then
+  if "${HOME}/bin/kiosk-launch.sh"; then
     rm -f "${HOME}/.kiosk-veille-active"
     echo "réveil OK firefox lancé"
   else

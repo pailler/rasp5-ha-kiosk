@@ -33,7 +33,7 @@ done < <(ps -C firefox-esr -o rss= 2>/dev/null)
 if ! pgrep -x firefox-esr >/dev/null; then
   pkill -x onboard 2>/dev/null || true
   log "firefox absent → relance kiosque"
-  "${HOME}/bin/ha-meteo-kiosk.sh" >>"$LOG" 2>&1
+  "${HOME}/bin/kiosk-launch.sh" >>"$LOG" 2>&1
   echo "$now" >"$COOLDOWN"
   exit 0
 fi
@@ -43,7 +43,7 @@ last_recycle=0
 [ -f "$STAMP" ] && last_recycle=$(cat "$STAMP" 2>/dev/null || echo 0)
 if [ $((now - last_recycle)) -ge 7200 ]; then
   log "recyclage préventif 4h (ff_rss=${ff_rss}kB)"
-  "${HOME}/bin/ha-meteo-kiosk.sh" >>"$LOG" 2>&1
+  "${HOME}/bin/kiosk-launch.sh" >>"$LOG" 2>&1
   echo "$now" >"$STAMP"
   echo "$now" >"$COOLDOWN"
   exit 0
@@ -69,7 +69,7 @@ fi
 
 if [ "$ff_rss" -gt 950000 ] || [ "$mem_avail" -lt 450000 ] || [ "$pct" -ge 82 ]; then
   log "seuil ff_rss=${ff_rss}kB avail=${mem_avail}kB pct=${pct}% → recycle firefox"
-  "${HOME}/bin/ha-meteo-kiosk.sh" >>"$LOG" 2>&1
+  "${HOME}/bin/kiosk-launch.sh" >>"$LOG" 2>&1
   echo "$now" >"$COOLDOWN"
   echo "$now" >"$STAMP"
 fi

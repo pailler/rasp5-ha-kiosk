@@ -22,6 +22,20 @@ URL="$(KIOSK_USE_LEGACY_TOKEN=1 HA_URL="$HA_BASE" KIOSK_PATH="$PATH_VIEW" \
 PROFILE="${HOME}/.mozilla/kiosk-profile"
 mkdir -p "$PROFILE"
 rm -f "$PROFILE"/sessionstore.json* "$PROFILE"/sessionCheckpoints.json 2>/dev/null || true
+W=1920
+H=1080
+if command -v xrandr >/dev/null 2>&1; then
+  cur=$(xrandr 2>/dev/null | awk '/ connected /{f=1} f&&/\*/{print $1; exit}')
+  if [ -n "$cur" ]; then
+    W=${cur%x*}
+    H=${cur#*x}
+  fi
+fi
+cat >>"$PROFILE/user.js" <<'USERJS'
+user_pref("browser.sessionstore.resume_from_crash", false);
+user_pref("toolkit.startup.max_resumed_crashes", -1);
+user_pref("full-screen-api.ignore-widgets", true);
+USERJS
 
 pkill -9 -f firefox-esr 2>/dev/null || true
 sleep 2
@@ -31,17 +45,35 @@ LOG="${HOME}/kiosk.log"
 echo "=== ha-kiosk-legacy $(date) === URL=$URL" >>"$LOG"
 /usr/bin/firefox-esr --no-remote --profile "$PROFILE" --start-maximized "$URL" &
 
-sleep 12
-for _ in $(seq 1 15); do
-  WID=$(xdotool search --class firefox 2>/dev/null | head -1)
+sleep 10
+pgrep -f hide-desktop-loop >/dev/null || "${HOME}/bin/hide-desktop-loop.sh" &
+pgrep -f firefox-geometry-guard >/dev/null || "${HOME}/bin/firefox-geometry-guard.sh" &
+
+find_ha_window() {
+  local wid name
+  for wid in $(xdotool search --class firefox 2>/dev/null); do
+    name=$(xdotool getwindowname "$wid" 2>/dev/null)
+    echo "$name" | grep -qiE 'home assistant|ecranmural|météo|meteo|mozilla firefox' && echo "$wid" && return 0
+  done
+  return 1
+}
+
+WID=""
+for _ in $(seq 1 25); do
+  WID=$(find_ha_window || true)
   [ -n "$WID" ] && break
   sleep 2
 done
-[ -z "${WID:-}" ] && exit 1
+[ -z "$WID" ] && exit 1
 
-xdotool windowactivate --sync "$WID" 2>/dev/null || true
-xdotool windowmove --sync "$WID" 0 0 2>/dev/null || true
-xdotool windowsize --sync "$WID" 1920 1080 2>/dev/null || true
-xdotool key --window "$WID" F11 2>/dev/null || true
+for _ in 1 2 3 4 5; do
+  xdotool windowactivate --sync "$WID" 2>/dev/null || true
+  xdotool windowmove --sync "$WID" 0 0 2>/dev/null || true
+  xdotool windowsize --sync "$WID" "$W" "$H" 2>/dev/null || true
+  xdotool key --window "$WID" F11 2>/dev/null || true
+  sleep 2
+  eval "$(xdotool getwindowgeometry --shell "$WID" 2>/dev/null)"
+  [ "${WIDTH:-0}" -ge "$((W - 20))" ] && [ "${HEIGHT:-0}" -ge "$((H - 20))" ] && break
+done
 pgrep -af "firefox-esr.*8123" | head -1 >>"$LOG"
 exit 0

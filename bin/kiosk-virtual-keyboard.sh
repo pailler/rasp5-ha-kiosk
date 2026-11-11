@@ -7,11 +7,7 @@ export XMODIFIERS="${XMODIFIERS:-@im=onboard}"
 
 if command -v onboard >/dev/null 2>&1; then
   if ! pgrep -x onboard >/dev/null 2>&1; then
-  onboard \
-    --layout=Compact \
-    --theme=DarkBoard \
-    --show-click-buttons=false \
-  &
+  onboard --layout=Compact --theme=DarkBoard &
     sleep 1
   fi
   gsettings set org.onboard.onboard auto-show true 2>/dev/null || true

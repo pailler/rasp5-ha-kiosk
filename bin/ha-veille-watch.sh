@@ -1,12 +1,17 @@
 #!/bin/bash
-# Veille RAM : absent (device_tracker) OU nuit 01h-07h, délai 5 min.
+# Veille : absent (traceur routeur / WiFi) OU nuit 01h-07h, délai 5 min.
 HA_URL="${HA_URL:-http://192.168.1.51:8123}"
-ENTITY="${HA_ENTITY:-device_tracker.mi}"
+# Traceur LAN (WiFi) : quitte "home" dès déconnexion du routeur. Éviter le GPS seul (ex. device_tracker.mi).
+ENTITY="${HA_ENTITY:-device_tracker.xiaomi_13_lite}"
 TOKEN_FILE="${HOME}/.config/ha-api-token"
+CONF_FILE="${HOME}/.config/ha-kiosk.env"
 TZ_NAME="${TZ:-Europe/Paris}"
 LOG="${HOME}/veille-watch.log"
 DELAY=300
 STATE_FILE="${HOME}/.veille-watch-state"
+FAIL_FILE="${HOME}/.veille-watch-fail-count"
+
+[ -r "$CONF_FILE" ] && . "$CONF_FILE"
 
 if [ ! -r "$TOKEN_FILE" ]; then
   echo "Token HA manquant: $TOKEN_FILE" >>"$LOG"
@@ -45,31 +50,57 @@ should_reveil() {
 load_since() { [ -f "$STATE_FILE" ] && . "$STATE_FILE"; SINCE=${SINCE:-0}; MODE=${MODE:-}; }
 save_since() { printf 'SINCE=%s\nMODE=%s\n' "$1" "$2" >"$STATE_FILE"; }
 
+fail_count() {
+  [ -f "$FAIL_FILE" ] && cat "$FAIL_FILE" || echo 0
+}
+save_fail_count() { echo "$1" >"$FAIL_FILE"; }
+
 load_since
 now=$(date +%s)
+in_veille=0
+[ -f "${HOME}/.kiosk-veille-active" ] && in_veille=1
 
 state=$(phone_state)
 if [ -z "$state" ]; then
-  echo "$(date) lecture HA échouée" >>"$LOG"
+  fc=$(fail_count)
+  fc=$((fc + 1))
+  save_fail_count "$fc"
+  echo "$(date) lecture HA échouée (tentative $fc, entité=$ENTITY)" >>"$LOG"
+  # Pas de réseau vers HA : veille après 5 min de polls ratés (évite écran bloqué)
+  if [ "$in_veille" -eq 0 ] && [ "$fc" -ge 5 ]; then
+    SINCE=${VEILLE_FAIL_SINCE:-0}
+    [ ! -f "${HOME}/.veille-fail-since" ] && echo "$now" >"${HOME}/.veille-fail-since"
+    since=$(cat "${HOME}/.veille-fail-since" 2>/dev/null || echo "$now")
+    if [ $((now - since)) -ge "$DELAY" ]; then
+      "${HOME}/bin/veille-ram.sh"
+      save_since "$now" "veille"
+      save_fail_count 0
+      rm -f "${HOME}/.veille-fail-since"
+      echo "$(date) veille active (HA injoignable $fc fois)" >>"$LOG"
+    fi
+  fi
   exit 0
 fi
 
+save_fail_count 0
+rm -f "${HOME}/.veille-fail-since"
+
 want=idle
-if should_veille "$state"; then want=veille; fi
-if should_reveil "$state"; then want=reveil; fi
+if should_veille "$state"; then
+  want=veille
+elif [ "$in_veille" -eq 1 ] && should_reveil "$state"; then
+  want=reveil
+fi
 
 if [ "$MODE" != "$want" ]; then
   SINCE=$now
   MODE=$want
   save_since "$SINCE" "$MODE"
-  echo "$(date) state=$state want=$want (nouveau)" >>"$LOG"
+  echo "$(date) entity=$ENTITY state=$state want=$want (nouveau)" >>"$LOG"
 fi
 
 elapsed=$((now - SINCE))
 [ "$elapsed" -lt "$DELAY" ] && exit 0
-
-in_veille=0
-[ -f "${HOME}/.kiosk-veille-active" ] && in_veille=1
 
 if [ "$want" = veille ] && [ "$in_veille" -eq 0 ]; then
   "${HOME}/bin/veille-ram.sh"

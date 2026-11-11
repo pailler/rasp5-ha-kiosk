@@ -25,6 +25,7 @@ Timers système : `check-ram-firefox`, `check-firefox` (toutes les 5 min).
 - `firefox-esr`, `xdotool`, `xrandr`, `curl`
 - Accès réseau à Home Assistant
 - Fichier `~/.config/ha-api-token` (Bearer, chmod 600) pour la veille présence
+- Fichier optionnel `~/.config/ha-kiosk.env` : `HA_ENTITY=device_tracker.xiaomi_13_lite` (présence **WiFi / routeur**, pas le GPS seul)
 
 ## Installation rapide
 

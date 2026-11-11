@@ -72,16 +72,25 @@ firefox_focus_window() {
 
 focus_ha_tab() {
   local _i
-  for _i in 1 2 3 4; do
+  for _i in 1 2; do
     firefox_focus_window 2>/dev/null || true
-    sleep 0.4
+    sleep 0.5
     if command -v wtype >/dev/null 2>&1; then
       wtype -M ctrl -k 1 2>/dev/null || true
     elif command -v xdotool >/dev/null 2>&1; then
       xdotool key --clearmodifiers ctrl+1 2>/dev/null || true
     fi
-    sleep 0.5
+    sleep 0.4
   done
+}
+
+ensure_wayland_fullscreen_once() {
+  (
+    sleep 20
+    firefox_focus_window 2>/dev/null || true
+    sleep 1
+    command -v wtype >/dev/null 2>&1 && wtype -k F11 2>/dev/null || true
+  ) &
 }
 
 wait_for_network() {
@@ -129,26 +138,6 @@ open_second_tab_background() {
   focus_ha_tab
 }
 
-kiosk_focus_ha_loop() {
-  (
-    for _ in 1 2 3 4 5 6 8 10; do
-      sleep 8
-      focus_ha_tab
-    done
-  ) &
-}
-
-kiosk_nudge_load() {
-  (
-    sleep 35
-    wait_firefox_ready || exit 0
-    u="$(generate_ha_url)"
-    "${HOME}/bin/kiosk-firefox-userjs.sh" "$PROFILE" "$u"
-    focus_ha_tab
-    command -v wtype >/dev/null && wtype -k F5 2>/dev/null || true
-    focus_ha_tab
-  ) &
-}
 W=1920
 H=1080
 if [ "$KIOSK_FIREFOX_WAYLAND" != "1" ] && command -v xrandr >/dev/null 2>&1; then
@@ -169,14 +158,11 @@ pkill -x onboard 2>/dev/null || true
 
 echo "=== ha-kiosk-legacy $(date) wayland=$KIOSK_FIREFOX_WAYLAND === URL=$URL" >>"$LOG"
 
-HA_START_PAGE="file://${PROFILE}/kiosk-start.html"
+FF_CMD=(/usr/bin/firefox-esr --no-remote --profile "$PROFILE" --start-maximized)
+"${FF_CMD[@]}" "$URL" &
 if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ]; then
-  # --start-maximized ne couvre pas tout l'écran sous Wayfire ; --kiosk oui.
-  FF_CMD=(/usr/bin/firefox-esr --no-remote --profile "$PROFILE" --kiosk)
-else
-  FF_CMD=(/usr/bin/firefox-esr --no-remote --profile "$PROFILE" --start-maximized)
+  ensure_wayland_fullscreen_once
 fi
-"${FF_CMD[@]}" "$HA_START_PAGE" &
 
 sleep 22
 pgrep -f hide-desktop-loop >/dev/null || "${HOME}/bin/hide-desktop-loop.sh" &
@@ -187,11 +173,8 @@ if [ -n "$SECOND_URL" ]; then
   focus_ha_tab
 fi
 
-kiosk_focus_ha_loop
-kiosk_nudge_load
-
 if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ]; then
-  pgrep -af "firefox-esr.*8123" | head -1 >>"$LOG"
+  pgrep -af "firefox-esr.*kiosk-profile" | head -1 >>"$LOG"
   exit 0
 fi
 

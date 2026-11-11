@@ -1,8 +1,11 @@
 #!/bin/bash
 # shellcheck source=kiosk-session-env.sh
 . "$(dirname "$0")/kiosk-session-env.sh"
+CONF_FILE="${HOME}/.config/ha-kiosk.env"
+[ -r "$CONF_FILE" ] && . "$CONF_FILE"
 export DISPLAY="${DISPLAY:-:0}"
-URL="http://192.168.1.51:8123/lovelace/ecranmural"
+KIOSK_URL="${KIOSK_URL:-http://192.168.1.51:8123/lovelace/ecranmural}"
+URL="$KIOSK_URL"
 W=1920
 H=1080
 
@@ -60,14 +63,28 @@ python3 "${HOME}/bin/ha-kiosk-inject-ha-auth.py" || true
 PROFILE="${HOME}/.mozilla/ha-kiosk-profile"
 mkdir -p "$PROFILE"
 cat >"$PROFILE/user.js" <<'USERJS'
-user_pref("dom.ipc.processCount", 2);
-user_pref("dom.ipc.processCount.web", 2);
+user_pref("dom.ipc.processCount", 4);
+user_pref("dom.ipc.processCount.web", 4);
 user_pref("browser.cache.disk.enable", false);
 user_pref("browser.sessionstore.restore_on_demand", true);
 user_pref("browser.sessionstore.max_tabs_undo", 0);
+user_pref("layers.acceleration.force-disabled", true);
+user_pref("gfx.webrender.all", false);
+user_pref("dom.max_hardware_canvas_dimension", 4096);
 USERJS
 
 firefox-esr -profile "$PROFILE" -no-remote -kiosk "$URL" &
+
+# Lovelace lourd (masonry) : rechargement différé si l’UI reste blanche
+(
+  sleep 30
+  WID=$(find_main_window)
+  [ -n "$WID" ] && xdotool key --window "$WID" F5 2>/dev/null
+  sleep 25
+  WID=$(find_main_window)
+  [ -n "$WID" ] && xdotool key --window "$WID" F5 2>/dev/null
+) &
+
 for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
   WID=$(find_main_window)
   [ -n "$WID" ] && resize_main_window "$WID"

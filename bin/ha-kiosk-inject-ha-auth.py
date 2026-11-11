@@ -27,7 +27,8 @@ def build_payload(access_token: str) -> str:
         "hassUrl": HASS_URL,
         "clientId": f"{HASS_URL}/",
         "access_token": access_token,
-        "refresh_token": "",
+        # Même jeton longue durée : le frontend 2026 l’accepte pour la session kiosque
+        "refresh_token": access_token,
         "expires": expires,
         "expires_in": 31_536_000,
     }
@@ -38,9 +39,8 @@ def write_ls(db_path: Path, payload: str) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(db_path)
     try:
-        con.execute("DROP TABLE IF EXISTS data")
         con.execute(
-            "CREATE TABLE data ("
+            "CREATE TABLE IF NOT EXISTS data ("
             "key TEXT PRIMARY KEY UNIQUE ON CONFLICT REPLACE, "
             "utf16_length INTEGER NOT NULL DEFAULT 0, "
             "value BLOB NOT NULL)"

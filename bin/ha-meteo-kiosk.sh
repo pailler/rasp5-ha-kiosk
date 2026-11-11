@@ -95,7 +95,7 @@ fi
 pkill -f "/usr/lib/chromium/chromium" 2>/dev/null || pkill -x chromium 2>/dev/null || true
 sleep 1
 
-if [ "$USE_OAUTH" -eq 1 ] || [[ "$URL" != *authSig=* ]]; then
+if [[ "$URL" != *authSig=* ]]; then
   python3 "${HOME}/bin/ha-kiosk-inject-ha-auth.py" || true
   if [ "$KIOSK_BROWSER" = "chromium" ]; then
     python3 "${HOME}/bin/ha-kiosk-inject-chromium-auth.py" 2>/dev/null || true

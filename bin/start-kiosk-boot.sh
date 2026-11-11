@@ -26,9 +26,19 @@ if pgrep -f "chromium.*8123" >/dev/null 2>&1 || pgrep -f "firefox-esr.*8123" >/d
   exit 0
 fi
 
-for _ in $(seq 1 90); do
-  if curl -fsS --max-time 3 "${HA_BASE}/api/" >/dev/null 2>&1; then
-  break
+ha_reachable() {
+  local code
+  code="$(curl -o /dev/null -sS --max-time 4 -w "%{http_code}" "${HA_BASE}/" 2>/dev/null)" || return 1
+  case "$code" in
+    200|301|302|401|404) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+for _ in $(seq 1 60); do
+  if ha_reachable; then
+    echo "HA joignable (http ${code:-?})"
+    break
   fi
   sleep 2
 done

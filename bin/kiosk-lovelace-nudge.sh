@@ -5,7 +5,7 @@ STAMP=/tmp/kiosk-lovelace-nudge.count
 count=$(cat "$STAMP" 2>/dev/null || echo 0)
 [ "$count" -ge 8 ] && exit 0
 
-pgrep -f "firefox-esr.*8123" >/dev/null || exit 0
+"$(dirname "$0")/kiosk-browser-active.sh" || exit 0
 WID=$(xdotool search --class firefox 2>/dev/null | while read -r wid; do
   name=$(xdotool getwindowname "$wid" 2>/dev/null)
   echo "$name" | grep -qiE 'home assistant|ecranmural|météo|meteo' && echo "$wid" && break

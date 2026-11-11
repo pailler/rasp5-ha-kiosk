@@ -23,8 +23,7 @@ for _ in $(seq 1 120); do
 done
 export DISPLAY="${DISPLAY:-:0}"
 
-if pgrep -f "chromium.*8123" >/dev/null 2>&1 \
-  || pgrep -f "firefox-esr.*8123" >/dev/null 2>&1; then
+if "${HOME}/bin/kiosk-browser-active.sh"; then
   echo "navigateur kiosque déjà actif"
   exit 0
 fi
@@ -67,8 +66,7 @@ else
   "${HOME}/bin/ha-meteo-kiosk.sh" || true
 fi
   sleep 8
-  if pgrep -f "firefox-esr.*8123" >/dev/null 2>&1 \
-    || pgrep -f "chromium.*8123" >/dev/null 2>&1; then
+  if "${HOME}/bin/kiosk-browser-active.sh"; then
     echo "kiosque OK (tentative $attempt)"
     break
   fi
@@ -82,4 +80,8 @@ fi
     "${HOME}/bin/ha-meteo-kiosk.sh" || true
   fi
 done
-pgrep -af "chromium.*8123|firefox-esr.*8123" | head -3 || echo "échec final kiosque"
+if "${HOME}/bin/kiosk-browser-active.sh"; then
+  pgrep -af "firefox-esr|chromium.*8123" | head -3
+else
+  echo "échec final kiosque"
+fi

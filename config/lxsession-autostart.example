@@ -2,4 +2,4 @@
 # Kiosque météo — pas de bureau LXDE
 @xsetroot -solid black
 @/home/rasp5/bin/hide-desktop-loop.sh &
-/home/rasp5/bin/ha-meteo-kiosk.sh
+@/home/rasp5/bin/start-kiosk-boot.sh

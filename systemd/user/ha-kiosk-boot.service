@@ -1,0 +1,13 @@
+[Unit]
+Description=Kiosque Home Assistant (Chromium) au démarrage
+After=graphical-session.target network-online.target
+Wants=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStartPre=/bin/sleep 25
+ExecStart=%h/bin/start-kiosk-boot.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=default.target

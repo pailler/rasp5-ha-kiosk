@@ -9,6 +9,7 @@ export DISPLAY="${DISPLAY:-:0}"
 unset WAYLAND_DISPLAY
 export MOZ_DISABLE_WAYLAND=1
 export MOZ_DISABLE_RDD_SANDBOX=1
+export MOZ_USE_XINPUT2=1
 export GNOME_KEYRING_CONTROL=
 export SECRET_SERVICE_DISABLE=1
 
@@ -32,11 +33,7 @@ if command -v xrandr >/dev/null 2>&1; then
     H=${cur#*x}
   fi
 fi
-cat >>"$PROFILE/user.js" <<'USERJS'
-user_pref("browser.sessionstore.resume_from_crash", false);
-user_pref("toolkit.startup.max_resumed_crashes", -1);
-user_pref("full-screen-api.ignore-widgets", true);
-USERJS
+"${HOME}/bin/kiosk-firefox-userjs.sh" "$PROFILE"
 
 pkill -9 -f firefox-esr 2>/dev/null || true
 sleep 2
@@ -67,15 +64,19 @@ for _ in $(seq 1 25); do
 done
 [ -z "$WID" ] && exit 1
 
+FULLSCREEN_MODE="${KIOSK_FULLSCREEN:-maximize}"
+
 for _ in 1 2 3 4 5; do
-  xdotool windowactivate --sync "$WID" 2>/dev/null || true
   xdotool windowmove --sync "$WID" 0 0 2>/dev/null || true
   xdotool windowsize --sync "$WID" "$W" "$H" 2>/dev/null || true
-  xdotool key --window "$WID" F11 2>/dev/null || true
+  if [ "$FULLSCREEN_MODE" = "f11" ]; then
+    xdotool key --window "$WID" F11 2>/dev/null || true
+  fi
   sleep 2
   eval "$(xdotool getwindowgeometry --shell "$WID" 2>/dev/null)"
   [ "${WIDTH:-0}" -ge "$((W - 20))" ] && [ "${HEIGHT:-0}" -ge "$((H - 20))" ] && break
 done
+xdotool windowactivate --sync "$WID" 2>/dev/null || true
 
 if [ -n "$SECOND_URL" ]; then
   xdotool windowactivate --sync "$WID" 2>/dev/null || true

@@ -35,11 +35,14 @@ while true; do
   WID=$(find_main_window)
   if [ -n "$WID" ]; then
     eval "$(xdotool getwindowgeometry --shell "$WID" 2>/dev/null)"
-    if [ "${WIDTH:-0}" -ne "$TARGET_W" ] || [ "${HEIGHT:-0}" -ne "$TARGET_H" ] || [ "${X:-1}" -ne 0 ] || [ "${Y:-1}" -ne 0 ]; then
-      xdotool windowactivate --sync "$WID" 2>/dev/null
+    dw=$((TARGET_W - WIDTH))
+    dh=$((TARGET_H - HEIGHT))
+    [ "$dw" -lt 0 ] && dw=$((-dw))
+    [ "$dh" -lt 0 ] && dh=$((-dh))
+    if [ "$dw" -gt 40 ] || [ "$dh" -gt 40 ] || [ "${X:-1}" -ne 0 ] || [ "${Y:-1}" -ne 0 ]; then
       xdotool windowmove --sync "$WID" 0 0 2>/dev/null
       xdotool windowsize --sync "$WID" "$TARGET_W" "$TARGET_H" 2>/dev/null
     fi
   fi
-  sleep 3
+  sleep 15
 done

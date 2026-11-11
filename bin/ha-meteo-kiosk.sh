@@ -18,9 +18,7 @@ fi
 "${HOME}/bin/kiosk-virtual-keyboard.sh" 2>/dev/null || true
 
 SIGNED_URL=""
-if [ "$KIOSK_BROWSER" = "chromium" ] || [ "$USE_OAUTH" -eq 0 ]; then
-  SIGNED_URL="$(HA_URL="$HA_BASE" KIOSK_PATH="$KIOSK_LOVELACE_PATH" python3 "${HOME}/bin/ha-kiosk-signed-url.py" 2>/dev/null)" || true
-fi
+SIGNED_URL="$(HA_URL="$HA_BASE" KIOSK_PATH="$KIOSK_LOVELACE_PATH" python3 "${HOME}/bin/ha-kiosk-signed-url.py" 2>/dev/null)" || true
 
 if [ -n "${KIOSK_URL:-}" ]; then
   URL="$KIOSK_URL"
@@ -105,6 +103,7 @@ fi
 
 PROFILE="${HOME}/.mozilla/ha-kiosk-profile"
 mkdir -p "$PROFILE"
+rm -f "$PROFILE"/sessionstore.json* "$PROFILE"/sessionCheckpoints.json 2>/dev/null || true
 cat >"$PROFILE/user.js" <<'USERJS'
 user_pref("dom.ipc.processCount", 4);
 user_pref("dom.ipc.processCount.web", 4);

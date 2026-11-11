@@ -1,0 +1,12 @@
+[Unit]
+Description=Maintient Firefox kiosque en pleine résolution
+After=graphical-session.target hide-desktop.service
+
+[Service]
+Type=simple
+ExecStart=%h/bin/firefox-geometry-guard.sh
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target

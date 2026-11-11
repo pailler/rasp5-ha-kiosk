@@ -1,0 +1,11 @@
+[Unit]
+Description=Surveillance présence / nuit pour veille RAM kiosque
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/bin/ha-veille-watch.sh
+
+[Install]
+WantedBy=default.target

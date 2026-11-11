@@ -1,0 +1,6 @@
+[Unit]
+Description=Vérifie que Firefox kiosque tourne
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/check-firefox.sh

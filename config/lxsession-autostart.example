@@ -1,0 +1,5 @@
+# ~/.config/lxsession/LXDE-pi/autostart
+# Kiosque météo — pas de bureau LXDE
+@xsetroot -solid black
+@/home/rasp5/bin/hide-desktop-loop.sh &
+/home/rasp5/bin/ha-meteo-kiosk.sh

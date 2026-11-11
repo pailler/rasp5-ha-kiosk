@@ -1,0 +1,6 @@
+[Unit]
+Description=Surveillance RAM Firefox (kiosque HA)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/check-ram-firefox.sh

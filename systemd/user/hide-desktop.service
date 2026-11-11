@@ -1,0 +1,13 @@
+[Unit]
+Description=Empêche le bureau et le panneau de réapparaître
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/bin/hide-desktop-loop.sh
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,3 @@
+# Copier vers ~/.config/ha-kiosk-login (chmod 600) — compte HA dédié kiosque recommandé
+KIOSK_USER=Kiosk
+KIOSK_PASSWORD=remplacer-par-mot-de-passe

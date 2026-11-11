@@ -71,6 +71,18 @@ def write_webapps(db_path: Path, payload: str) -> None:
 
 
 def main() -> int:
+    front = Path.home() / ".config" / "ha-frontend-tokens.json"
+    if front.is_file():
+        try:
+            data = json.loads(front.read_text(encoding="utf-8"))
+            payload = data.get("hassTokens")
+            if isinstance(payload, str) and len(payload) > 50:
+                write_ls(LS_DB, payload)
+                write_webapps(WEBAPPS, payload)
+                print(f"Auth HA (OAuth) injectée ({len(payload)} octets)")
+                return 0
+        except (json.JSONDecodeError, OSError):
+            pass
     if not TOKEN_FILE.is_file():
         print(f"Jeton manquant: {TOKEN_FILE}")
         return 1

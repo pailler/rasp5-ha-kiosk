@@ -4,8 +4,15 @@
 CONF_FILE="${HOME}/.config/ha-kiosk.env"
 [ -r "$CONF_FILE" ] && . "$CONF_FILE"
 export DISPLAY="${DISPLAY:-:0}"
-KIOSK_URL="${KIOSK_URL:-http://192.168.1.51:8123/lovelace/ecranmural}"
+KIOSK_LOVELACE_PATH="${KIOSK_LOVELACE_PATH:-/lovelace/ecranmural}"
+if [ -z "${KIOSK_URL:-}" ]; then
+  KIOSK_URL="$(HA_URL="${HA_URL:-http://192.168.1.51:8123}" KIOSK_PATH="$KIOSK_LOVELACE_PATH" python3 "${HOME}/bin/ha-kiosk-signed-url.py" 2>/dev/null)" || true
+fi
+if [ -z "${KIOSK_URL:-}" ]; then
+  KIOSK_URL="http://192.168.1.51:8123${KIOSK_LOVELACE_PATH}"
+fi
 URL="$KIOSK_URL"
+export KIOSK_PATH="$KIOSK_LOVELACE_PATH"
 W=1920
 H=1080
 

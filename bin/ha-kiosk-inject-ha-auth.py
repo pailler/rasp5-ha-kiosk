@@ -27,8 +27,7 @@ def build_payload(access_token: str) -> str:
         "hassUrl": HASS_URL,
         "clientId": f"{HASS_URL}/",
         "access_token": access_token,
-        # Même jeton longue durée : le frontend 2026 l’accepte pour la session kiosque
-        "refresh_token": access_token,
+        "refresh_token": "",
         "expires": expires,
         "expires_in": 31_536_000,
     }

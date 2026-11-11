@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+"""Génère une URL Lovelace signée (authSig) pour le kiosque sans page de login."""
+from __future__ import annotations
+
+import json
+import os
+import sys
+import urllib.parse
+
+try:
+    import websocket
+except ImportError:
+    print("Module websocket manquant (python3-websocket)", file=sys.stderr)
+    raise SystemExit(1)
+
+HASS_URL = os.environ.get("HA_URL", "http://192.168.1.51:8123").rstrip("/")
+KIOSK_PATH = os.environ.get(
+    "KIOSK_PATH",
+    os.environ.get("KIOSK_LOVELACE_PATH", "/lovelace/ecranmural"),
+)
+if not KIOSK_PATH.startswith("/"):
+    KIOSK_PATH = "/" + KIOSK_PATH
+SIG_EXPIRES = int(os.environ.get("KIOSK_AUTHSIG_EXPIRES", "86400"))
+TOKEN_FILE = os.environ.get("HA_TOKEN_FILE", os.path.expanduser("~/.config/ha-api-token"))
+
+
+def read_token() -> str:
+    with open(TOKEN_FILE, encoding="utf-8") as f:
+        return f.read().strip().replace("\r", "").replace("\n", "")
+
+
+def ws_url(hass_url: str) -> str:
+    parsed = urllib.parse.urlparse(hass_url)
+    scheme = "wss" if parsed.scheme == "https" else "ws"
+    netloc = parsed.netloc or parsed.path
+    return f"{scheme}://{netloc}/api/websocket"
+
+
+def sign_path(hass_url: str, path: str, token: str, expires: int) -> str:
+    ws = websocket.create_connection(ws_url(hass_url), timeout=20)
+    try:
+        ws.recv()
+        ws.send(json.dumps({"type": "auth", "access_token": token}))
+        auth = json.loads(ws.recv())
+        if auth.get("type") != "auth_ok":
+            raise RuntimeError(f"Auth WS échouée: {auth}")
+        req = {
+            "id": 1,
+            "type": "auth/sign_path",
+            "path": path.split("?")[0],
+            "expires": expires,
+        }
+        ws.send(json.dumps(req))
+        while True:
+            msg = json.loads(ws.recv())
+            if msg.get("id") == 1:
+                if not msg.get("success"):
+                    raise RuntimeError(msg)
+                return msg["result"]["path"]
+    finally:
+        ws.close()
+
+
+def main() -> int:
+    if not os.path.isfile(TOKEN_FILE):
+        print(f"Jeton manquant: {TOKEN_FILE}", file=sys.stderr)
+        return 1
+    token = read_token()
+    if len(token) < 20:
+        print("Jeton invalide", file=sys.stderr)
+        return 1
+    signed = sign_path(HASS_URL, KIOSK_PATH, token, SIG_EXPIRES)
+    if not signed.startswith("/"):
+        signed = "/" + signed
+    print(f"{HASS_URL}{signed}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

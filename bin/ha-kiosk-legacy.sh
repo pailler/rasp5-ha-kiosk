@@ -31,9 +31,24 @@ HA_BASE="${HA_URL:-http://192.168.1.51:8123}"
 HA_BASE="${HA_BASE%/}"
 PATH_VIEW="${KIOSK_LOVELACE_PATH:-/lovelace/ecranmural}"
 SECOND_URL="${KIOSK_SECOND_URL:-}"
+LOG="${HOME}/kiosk.log"
 
-URL="$(KIOSK_USE_LEGACY_TOKEN=1 HA_URL="$HA_BASE" KIOSK_PATH="$PATH_VIEW" \
-  python3 "${HOME}/bin/ha-kiosk-signed-url.py" 2>/dev/null)" || URL="${HA_BASE}${PATH_VIEW}"
+generate_ha_url() {
+  local u try
+  for try in 1 2 3 4 5; do
+    u="$(KIOSK_USE_LEGACY_TOKEN=1 HA_URL="$HA_BASE" KIOSK_PATH="$PATH_VIEW" \
+      python3 "${HOME}/bin/ha-kiosk-signed-url.py" 2>>"$LOG")" || u=""
+    if [ -n "$u" ] && [[ "$u" == *authSig=* ]]; then
+      echo "$u"
+      return 0
+    fi
+    echo "authSig échec tentative $try" >>"$LOG"
+    sleep 3
+  done
+  echo "${HA_BASE}${PATH_VIEW}"
+}
+
+URL="$(generate_ha_url)"
 
 PROFILE="${HOME}/.mozilla/kiosk-profile"
 mkdir -p "$PROFILE"
@@ -94,15 +109,12 @@ open_second_tab_background() {
 
 kiosk_nudge_load() {
   (
-    sleep 30
+    sleep 35
     wait_firefox_ready || exit 0
+    u="$(generate_ha_url)"
+    "${HOME}/bin/kiosk-firefox-userjs.sh" "$PROFILE" "$u"
     focus_ha_tab
     command -v wtype >/dev/null && wtype -k F5 2>/dev/null || true
-    if [ -n "${SECOND_URL:-}" ]; then
-      /usr/bin/firefox-esr --profile "$PROFILE" -new-tab "$SECOND_URL" 2>/dev/null || true
-      sleep 2
-      focus_ha_tab
-    fi
   ) &
 }
 W=1920
@@ -114,22 +126,22 @@ if [ "$KIOSK_FIREFOX_WAYLAND" != "1" ] && command -v xrandr >/dev/null 2>&1; the
     H=${cur#*x}
   fi
 fi
-"${HOME}/bin/kiosk-firefox-userjs.sh" "$PROFILE"
+"${HOME}/bin/kiosk-firefox-userjs.sh" "$PROFILE" "$URL"
 
-wait_for_network || echo "réseau partiel (on lance quand même)" >>"${HOME}/kiosk.log"
+wait_for_network || echo "réseau partiel (on lance quand même)" >>"$LOG"
 
 pkill -9 -f firefox-esr 2>/dev/null || true
 sleep 2
 pkill -f firefox-geometry-guard 2>/dev/null || true
 pkill -x onboard 2>/dev/null || true
 
-LOG="${HOME}/kiosk.log"
 echo "=== ha-kiosk-legacy $(date) wayland=$KIOSK_FIREFOX_WAYLAND === URL=$URL" >>"$LOG"
 
+HA_START_PAGE="file://${PROFILE}/kiosk-start.html"
 FF_CMD=(/usr/bin/firefox-esr --no-remote --profile "$PROFILE" --start-maximized)
-"${FF_CMD[@]}" "$URL" &
+"${FF_CMD[@]}" "$HA_START_PAGE" &
 
-sleep 12
+sleep 18
 pgrep -f hide-desktop-loop >/dev/null || "${HOME}/bin/hide-desktop-loop.sh" &
 
 if [ -n "$SECOND_URL" ]; then

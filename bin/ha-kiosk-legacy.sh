@@ -170,7 +170,12 @@ pkill -x onboard 2>/dev/null || true
 echo "=== ha-kiosk-legacy $(date) wayland=$KIOSK_FIREFOX_WAYLAND === URL=$URL" >>"$LOG"
 
 HA_START_PAGE="file://${PROFILE}/kiosk-start.html"
-FF_CMD=(/usr/bin/firefox-esr --no-remote --profile "$PROFILE" --start-maximized)
+if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ]; then
+  # --start-maximized ne couvre pas tout l'écran sous Wayfire ; --kiosk oui.
+  FF_CMD=(/usr/bin/firefox-esr --no-remote --profile "$PROFILE" --kiosk)
+else
+  FF_CMD=(/usr/bin/firefox-esr --no-remote --profile "$PROFILE" --start-maximized)
+fi
 "${FF_CMD[@]}" "$HA_START_PAGE" &
 
 sleep 22

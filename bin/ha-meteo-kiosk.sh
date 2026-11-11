@@ -95,7 +95,7 @@ fi
 pkill -f "/usr/lib/chromium/chromium" 2>/dev/null || pkill -x chromium 2>/dev/null || true
 sleep 1
 
-if [[ "$URL" != *authSig=* ]]; then
+if [ "$USE_OAUTH" -eq 1 ] || [[ "$URL" != *authSig=* ]]; then
   python3 "${HOME}/bin/ha-kiosk-inject-ha-auth.py" || true
   if [ "$KIOSK_BROWSER" = "chromium" ]; then
     python3 "${HOME}/bin/ha-kiosk-inject-chromium-auth.py" 2>/dev/null || true
@@ -106,6 +106,7 @@ fi
 PROFILE="${HOME}/.mozilla/ha-kiosk-profile"
 mkdir -p "$PROFILE"
 rm -f "$PROFILE"/sessionstore.json* "$PROFILE"/sessionCheckpoints.json 2>/dev/null || true
+rm -f /tmp/kiosk-lovelace-nudge.count 2>/dev/null || true
 cat >"$PROFILE/user.js" <<'USERJS'
 user_pref("dom.ipc.processCount", 2);
 user_pref("dom.ipc.processCount.web", 2);
@@ -144,14 +145,13 @@ else
   firefox-esr -profile "$PROFILE" -no-remote -kiosk "$URL" &
 fi
 
-# Lovelace lourd (masonry) : rechargement différé si l’UI reste blanche
+# Lovelace lourd (cartes custom ecranmural) : rechargements échelonnés
 (
-  sleep 30
-  WID=$(find_main_window)
-  [ -n "$WID" ] && xdotool key --window "$WID" F5 2>/dev/null
-  sleep 25
-  WID=$(find_main_window)
-  [ -n "$WID" ] && xdotool key --window "$WID" F5 2>/dev/null
+  for delay in 20 50 90 150; do
+    sleep "$delay"
+    WID=$(find_main_window)
+    [ -n "$WID" ] && xdotool key --window "$WID" F5 2>/dev/null
+  done
 ) &
 
 for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do

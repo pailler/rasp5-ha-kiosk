@@ -1,0 +1,10 @@
+[Unit]
+Description=Rechargements Lovelace (écran blanc / cartes custom)
+
+[Timer]
+OnBootSec=45s
+OnUnitActiveSec=45s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

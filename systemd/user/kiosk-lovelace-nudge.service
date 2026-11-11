@@ -1,0 +1,6 @@
+[Unit]
+Description=Nudge F5 navigateur kiosque
+
+[Service]
+Type=oneshot
+ExecStart=%h/bin/kiosk-lovelace-nudge.sh

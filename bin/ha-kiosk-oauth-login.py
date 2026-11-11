@@ -33,7 +33,7 @@ def load_login() -> tuple[str, str]:
     return user, password
 
 
-def post(path: str, payload: dict) -> dict:
+def post_json(path: str, payload: dict) -> dict:
     req = urllib.request.Request(
         f"{HASS_URL}{path}",
         data=json.dumps(payload).encode(),
@@ -44,9 +44,27 @@ def post(path: str, payload: dict) -> dict:
         return json.loads(resp.read().decode())
 
 
+def post_form_token(code: str, client_id: str) -> dict:
+    body = urllib.parse.urlencode(
+        {
+            "grant_type": "authorization_code",
+            "code": code,
+            "client_id": client_id,
+        }
+    ).encode()
+    req = urllib.request.Request(
+        f"{HASS_URL}/auth/token",
+        data=body,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        return json.loads(resp.read().decode())
+
+
 def login(hass_url: str, username: str, password: str) -> dict:
     client_id = f"{hass_url}/"
-    flow = post(
+    flow = post_json(
         "/auth/login_flow",
         {
             "client_id": client_id,
@@ -55,7 +73,7 @@ def login(hass_url: str, username: str, password: str) -> dict:
         },
     )
     flow_id = flow["flow_id"]
-    step = post(
+    step = post_json(
         f"/auth/login_flow/{flow_id}",
         {
             "client_id": client_id,
@@ -65,10 +83,13 @@ def login(hass_url: str, username: str, password: str) -> dict:
     )
     if step.get("type") != "create_entry":
         raise RuntimeError(f"Login incomplet: {step}")
-    result = step.get("result") or {}
-    if not result.get("refresh_token"):
-        raise RuntimeError(f"Pas de refresh_token: {result}")
-    return result
+    code = step.get("result")
+    if not isinstance(code, str) or len(code) < 8:
+        raise RuntimeError(f"Code auth invalide: {code!r}")
+    tokens = post_form_token(code, client_id)
+    if not tokens.get("refresh_token"):
+        raise RuntimeError(f"Pas de refresh_token: {tokens}")
+    return tokens
 
 
 def build_hass_tokens(hass_url: str, result: dict) -> str:

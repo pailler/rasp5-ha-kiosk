@@ -89,6 +89,7 @@ sleep 1
 
 if [ "$USE_OAUTH" -eq 1 ] || [[ "$URL" != *authSig=* ]]; then
   python3 "${HOME}/bin/ha-kiosk-inject-ha-auth.py" || true
+  [ "$KIOSK_BROWSER" = "chromium" ] && python3 "${HOME}/bin/ha-kiosk-inject-chromium-auth.py" 2>/dev/null || true
 fi
 
 PROFILE="${HOME}/.mozilla/ha-kiosk-profile"

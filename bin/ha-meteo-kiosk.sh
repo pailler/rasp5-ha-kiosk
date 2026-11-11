@@ -15,7 +15,9 @@ if [ "$USE_OAUTH" -eq 1 ]; then
   python3 "${HOME}/bin/ha-kiosk-oauth-login.py" 2>/dev/null || USE_OAUTH=0
 fi
 
-"${HOME}/bin/kiosk-virtual-keyboard.sh" 2>/dev/null || true
+if [ "${KIOSK_VIRTUAL_KEYBOARD:-0}" = "1" ]; then
+  "${HOME}/bin/kiosk-virtual-keyboard.sh" 2>/dev/null || true
+fi
 
 SIGNED_URL=""
 SIGNED_URL="$(HA_URL="$HA_BASE" KIOSK_PATH="$KIOSK_LOVELACE_PATH" python3 "${HOME}/bin/ha-kiosk-signed-url.py" 2>/dev/null)" || true
@@ -106,7 +108,7 @@ mkdir -p "$PROFILE"
 rm -f "$PROFILE"/sessionstore.json* "$PROFILE"/sessionCheckpoints.json 2>/dev/null || true
 cat >"$PROFILE/user.js" <<'USERJS'
 user_pref("dom.ipc.processCount", 2);
-user_pref("dom.ipc.processCount.web", 1);
+user_pref("dom.ipc.processCount.web", 2);
 user_pref("browser.cache.memory.capacity", 32768);
 user_pref("browser.cache.disk.enable", false);
 user_pref("browser.sessionstore.restore_on_demand", true);
@@ -135,6 +137,9 @@ if [ "$KIOSK_BROWSER" = "chromium" ] && command -v chromium >/dev/null 2>&1; the
     "${CHROME_EXTRA[@]}" \
     "$URL" &
 else
+  export MOZ_DISABLE_WAYLAND="${MOZ_DISABLE_WAYLAND:-1}"
+  export MOZ_X11_EGL=0
+  export GDK_BACKEND=x11
   firefox-esr -profile "$PROFILE" -no-remote -kiosk "$URL" &
 fi
 

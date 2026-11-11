@@ -31,6 +31,7 @@ while read -r rss; do
 done < <(ps -C firefox-esr -o rss= 2>/dev/null)
 
 if ! pgrep -x firefox-esr >/dev/null; then
+  pkill -x onboard 2>/dev/null || true
   log "firefox absent → relance kiosque"
   "${HOME}/bin/ha-meteo-kiosk.sh" >>"$LOG" 2>&1
   echo "$now" >"$COOLDOWN"

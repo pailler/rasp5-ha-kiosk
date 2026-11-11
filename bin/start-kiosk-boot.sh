@@ -44,6 +44,19 @@ for _ in $(seq 1 60); do
   sleep 2
 done
 
-"${HOME}/bin/ha-meteo-kiosk.sh" || true
-sleep 5
-pgrep -af "chromium.*8123|firefox-esr.*8123" | head -3 || echo "échec lancement kiosque"
+pkill -x onboard 2>/dev/null || true
+
+for attempt in 1 2 3; do
+  "${HOME}/bin/ha-meteo-kiosk.sh" || true
+  sleep 8
+  if pgrep -f "firefox-esr.*8123" >/dev/null 2>&1 \
+    || pgrep -f "chromium.*8123" >/dev/null 2>&1; then
+    echo "kiosque OK (tentative $attempt)"
+    break
+  fi
+  echo "échec lancement kiosque tentative $attempt"
+  pkill -x firefox-esr 2>/dev/null || true
+  pkill -x chromium 2>/dev/null || true
+  sleep 3
+done
+pgrep -af "chromium.*8123|firefox-esr.*8123" | head -3 || echo "échec final kiosque"

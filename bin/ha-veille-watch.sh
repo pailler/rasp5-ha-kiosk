@@ -1,4 +1,6 @@
 #!/bin/bash
+# shellcheck source=kiosk-session-env.sh
+. "$(dirname "$0")/kiosk-session-env.sh"
 # Veille : absent (traceur routeur / WiFi) OU nuit 01h-07h, délai 5 min.
 HA_URL="${HA_URL:-http://192.168.1.51:8123}"
 # Traceur LAN (WiFi) : quitte "home" dès déconnexion du routeur. Éviter le GPS seul (ex. device_tracker.mi).

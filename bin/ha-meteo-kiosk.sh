@@ -1,4 +1,6 @@
 #!/bin/bash
+# shellcheck source=kiosk-session-env.sh
+. "$(dirname "$0")/kiosk-session-env.sh"
 export DISPLAY="${DISPLAY:-:0}"
 URL="http://192.168.1.51:8123/lovelace/ecranmural"
 W=1920
@@ -71,4 +73,9 @@ for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
   [ "${WIDTH:-0}" -eq "$W" ] && [ "${HEIGHT:-0}" -eq "$H" ] && exit 0
   sleep 1
 done
+if pgrep -x firefox-esr >/dev/null; then
+  WID=$(find_main_window)
+  [ -n "$WID" ] && resize_main_window "$WID"
+  exit 0
+fi
 exit 1

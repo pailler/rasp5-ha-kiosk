@@ -1,6 +1,13 @@
 #!/bin/bash
-[ -f /home/rasp5/.kiosk-veille-active ] && exit 0
+KIOSK_USER="${KIOSK_USER:-rasp5}"
+KIOSK_HOME="/home/${KIOSK_USER}"
+KIOSK_UID="$(id -u "${KIOSK_USER}" 2>/dev/null || echo 1000)"
+
+[ -f "${KIOSK_HOME}/.kiosk-veille-active" ] && exit 0
 HOUR=$(date +%H); HOUR=$((10#$HOUR))
 [ "$HOUR" -ge 1 ] && [ "$HOUR" -lt 7 ] && exit 0
-export DISPLAY="${DISPLAY:-:0}"
-exec /home/rasp5/bin/ha-meteo-kiosk.sh
+exec runuser -u "${KIOSK_USER}" -- env \
+  DISPLAY=:0 \
+  XDG_RUNTIME_DIR="/run/user/${KIOSK_UID}" \
+  DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${KIOSK_UID}/bus" \
+  "${KIOSK_HOME}/bin/reveil-kiosk.sh"

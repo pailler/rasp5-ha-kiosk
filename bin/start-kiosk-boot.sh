@@ -21,7 +21,8 @@ for _ in $(seq 1 120); do
 done
 export DISPLAY="${DISPLAY:-:0}"
 
-if pgrep -f "chromium.*8123" >/dev/null 2>&1 || pgrep -f "firefox-esr.*8123" >/dev/null 2>&1; then
+if pgrep -f "chromium.*8123" >/dev/null 2>&1 \
+  || pgrep -f "firefox-esr.*8123" >/dev/null 2>&1; then
   echo "navigateur kiosque déjà actif"
   exit 0
 fi

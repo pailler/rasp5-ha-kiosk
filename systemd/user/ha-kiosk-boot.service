@@ -1,5 +1,5 @@
 [Unit]
-Description=Kiosque Home Assistant (Chromium) au démarrage
+Description=Kiosque Home Assistant (Firefox/Chromium) au démarrage
 After=graphical-session.target network-online.target
 Wants=graphical-session.target
 

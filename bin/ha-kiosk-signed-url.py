@@ -23,27 +23,41 @@ if not KIOSK_PATH.startswith("/"):
 SIG_EXPIRES = int(os.environ.get("KIOSK_AUTHSIG_EXPIRES", "86400"))
 TOKEN_FILE = os.environ.get("HA_TOKEN_FILE", os.path.expanduser("~/.config/ha-api-token"))
 OAUTH_FILE = os.path.expanduser("~/.config/ha-frontend-tokens.json")
+LOGIN_FILE = os.path.expanduser("~/.config/ha-kiosk-login")
+
+
+def oauth_access_token() -> str | None:
+    if not os.path.isfile(OAUTH_FILE):
+        return None
+    try:
+        data = json.loads(open(OAUTH_FILE, encoding="utf-8").read())
+        raw = data.get("raw") or {}
+        if isinstance(raw.get("access_token"), str) and len(raw["access_token"]) > 20:
+            return raw["access_token"]
+        hass = data.get("hassTokens")
+        if isinstance(hass, str):
+            parsed = json.loads(hass)
+            tok = parsed.get("access_token")
+            if isinstance(tok, str) and len(tok) > 20:
+                return tok
+    except (json.JSONDecodeError, OSError, TypeError, KeyError):
+        return None
+    return None
 
 
 def read_token() -> str:
+  # Compte Kiosk : authSig et localStorage doivent utiliser le même jeton.
+    if os.path.isfile(LOGIN_FILE):
+        kiosk_tok = oauth_access_token()
+        if kiosk_tok:
+            return kiosk_tok
     if os.path.isfile(TOKEN_FILE):
         token = open(TOKEN_FILE, encoding="utf-8").read().strip().replace("\r", "").replace("\n", "")
         if len(token) >= 20:
             return token
-    if os.path.isfile(OAUTH_FILE):
-        try:
-            data = json.loads(open(OAUTH_FILE, encoding="utf-8").read())
-            raw = data.get("raw") or {}
-            if isinstance(raw.get("access_token"), str) and len(raw["access_token"]) > 20:
-                return raw["access_token"]
-            hass = data.get("hassTokens")
-            if isinstance(hass, str):
-                parsed = json.loads(hass)
-                tok = parsed.get("access_token")
-                if isinstance(tok, str) and len(tok) > 20:
-                    return tok
-        except (json.JSONDecodeError, OSError, TypeError, KeyError):
-            pass
+    kiosk_tok = oauth_access_token()
+    if kiosk_tok:
+        return kiosk_tok
     raise FileNotFoundError(f"Jeton manquant ({TOKEN_FILE} ou {OAUTH_FILE})")
 
 

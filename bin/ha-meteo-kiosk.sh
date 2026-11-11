@@ -113,6 +113,9 @@ user_pref("browser.sessionstore.max_tabs_undo", 0);
 user_pref("layers.acceleration.force-disabled", true);
 user_pref("gfx.webrender.all", false);
 user_pref("dom.max_hardware_canvas_dimension", 4096);
+user_pref("privacy.trackingprotection.enabled", false);
+user_pref("privacy.trackingprotection.pbmode.enabled", false);
+user_pref("network.cookie.cookieBehavior", 0);
 USERJS
 
 if [ "$KIOSK_BROWSER" = "chromium" ] && command -v chromium >/dev/null 2>&1; then

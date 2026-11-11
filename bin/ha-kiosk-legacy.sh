@@ -1,6 +1,10 @@
 #!/bin/bash
 # Mode d’origine : Firefox kiosk-profile, plein écran, authSig jeton long (ha-api-token).
 set -euo pipefail
+LOCK=/tmp/ha-kiosk-legacy.lock
+exec 8>"$LOCK"
+flock -n 8 || exit 0
+
 . "$(dirname "$0")/kiosk-session-env.sh"
 CONF="${HOME}/.config/ha-kiosk.env"
 [ -r "$CONF" ] && . "$CONF"
@@ -65,6 +69,11 @@ sleep 10
 pgrep -f hide-desktop-loop >/dev/null || "${HOME}/bin/hide-desktop-loop.sh" &
 
 if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ]; then
+  if [ -n "$SECOND_URL" ]; then
+    sleep 3
+    /usr/bin/firefox-esr --no-remote --profile "$PROFILE" -new-tab "$SECOND_URL" 2>/dev/null || true
+    echo "onglet iahome ouvert (-new-tab)" >>"$LOG"
+  fi
   pgrep -af "firefox-esr.*8123" | head -1 >>"$LOG"
   exit 0
 fi

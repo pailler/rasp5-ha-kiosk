@@ -10,6 +10,8 @@ exec >>"$LOG" 2>&1
 echo "=== start-kiosk-boot $(date) ==="
 
 . "$(dirname "$0")/kiosk-session-env.sh"
+CONF="${HOME}/.config/ha-kiosk.env"
+[ -r "$CONF" ] && . "$CONF"
 
 HA_BASE="${HA_URL:-http://192.168.1.51:8123}"
 HA_BASE="${HA_BASE%/}"
@@ -47,7 +49,11 @@ done
 pkill -x onboard 2>/dev/null || true
 
 for attempt in 1 2 3; do
+  if [ "${KIOSK_LEGACY:-0}" = "1" ]; then
+  "${HOME}/bin/ha-kiosk-legacy.sh" || true
+else
   "${HOME}/bin/ha-meteo-kiosk.sh" || true
+fi
   sleep 8
   if pgrep -f "firefox-esr.*8123" >/dev/null 2>&1 \
     || pgrep -f "chromium.*8123" >/dev/null 2>&1; then
@@ -58,5 +64,10 @@ for attempt in 1 2 3; do
   pkill -x firefox-esr 2>/dev/null || true
   pkill -x chromium 2>/dev/null || true
   sleep 3
+  if [ "${KIOSK_LEGACY:-0}" = "1" ]; then
+    "${HOME}/bin/ha-kiosk-legacy.sh" || true
+  else
+    "${HOME}/bin/ha-meteo-kiosk.sh" || true
+  fi
 done
 pgrep -af "chromium.*8123|firefox-esr.*8123" | head -3 || echo "échec final kiosque"

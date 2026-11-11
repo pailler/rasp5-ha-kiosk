@@ -46,7 +46,13 @@ def oauth_access_token() -> str | None:
 
 
 def read_token() -> str:
-  # Compte Kiosk : authSig et localStorage doivent utiliser le même jeton.
+    if os.environ.get("KIOSK_USE_LEGACY_TOKEN") == "1":
+        if os.path.isfile(TOKEN_FILE):
+            token = open(TOKEN_FILE, encoding="utf-8").read().strip().replace("\r", "").replace("\n", "")
+            if len(token) >= 20:
+                return token
+        raise FileNotFoundError(TOKEN_FILE)
+    # Compte Kiosk : authSig et localStorage doivent utiliser le même jeton.
     if os.path.isfile(LOGIN_FILE):
         kiosk_tok = oauth_access_token()
         if kiosk_tok:

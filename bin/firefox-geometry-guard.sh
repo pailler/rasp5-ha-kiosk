@@ -1,6 +1,12 @@
 #!/bin/bash
 exec 9>/tmp/firefox-geometry-guard.lock
 flock -n 9 || exit 0
+. "$(dirname "$0")/kiosk-session-env.sh"
+CONF="${HOME}/.config/ha-kiosk.env"
+[ -r "$CONF" ] && . "$CONF"
+if [ "${KIOSK_FIREFOX_WAYLAND:-1}" = "1" ]; then
+  exec sleep infinity
+fi
 export DISPLAY="${DISPLAY:-:0}"
 TARGET_W=1920
 TARGET_H=1080

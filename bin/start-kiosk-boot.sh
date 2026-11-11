@@ -46,6 +46,18 @@ for _ in $(seq 1 60); do
   sleep 2
 done
 
+SECOND_BOOT_URL="${KIOSK_SECOND_URL:-}"
+if [ -n "$SECOND_BOOT_URL" ]; then
+  for _ in $(seq 1 30); do
+    code2=$(curl -o /dev/null -sS --max-time 6 -w "%{http_code}" "$SECOND_BOOT_URL" 2>/dev/null) || code2=0
+    case "$code2" in
+      200|301|302|403) echo "2e URL joignable ($code2)"; break ;;
+    esac
+    sleep 2
+  done
+fi
+sleep 3
+
 pkill -x onboard 2>/dev/null || true
 
 for attempt in 1 2 3; do

@@ -50,13 +50,60 @@ focus_ha_tab() {
   fi
 }
 
+wait_for_network() {
+  local n=0
+  while [ "$n" -lt 60 ]; do
+    code_ha=$(curl -o /dev/null -sS --max-time 4 -w "%{http_code}" "${HA_BASE}/" 2>/dev/null) || code_ha=0
+    case "$code_ha" in
+      200|301|302|401|404) ;;
+      *) n=$((n + 1)); sleep 2; continue ;;
+    esac
+    if [ -n "${SECOND_URL:-}" ]; then
+      code_2=$(curl -o /dev/null -sS --max-time 6 -w "%{http_code}" "$SECOND_URL" 2>/dev/null) || code_2=0
+      case "$code_2" in
+        200|301|302|403) return 0 ;;
+      esac
+      n=$((n + 1)); sleep 2; continue
+    fi
+    return 0
+  done
+  return 1
+}
+
+wait_firefox_ready() {
+  local i=0
+  while [ "$i" -lt 45 ]; do
+    if pgrep -x firefox-esr >/dev/null; then
+      sleep 4
+      return 0
+    fi
+    sleep 2
+    i=$((i + 1))
+  done
+  return 1
+}
+
 open_second_tab_background() {
   local url="$1"
   [ -z "$url" ] && return 0
-  /usr/bin/firefox-esr --no-remote --profile "$PROFILE" -remote "openURL(${url},new-background-tab)" 2>/dev/null \
-    || /usr/bin/firefox-esr --no-remote --profile "$PROFILE" -new-tab "$url" 2>/dev/null \
-    || true
+  wait_firefox_ready || true
+  /usr/bin/firefox-esr --profile "$PROFILE" -new-tab "$url" 2>/dev/null || true
+  sleep 2
   focus_ha_tab
+}
+
+kiosk_nudge_load() {
+  (
+    sleep 30
+    wait_firefox_ready || exit 0
+    focus_ha_tab
+    command -v wtype >/dev/null && wtype -k F5 2>/dev/null || true
+    if [ -n "${SECOND_URL:-}" ]; then
+      /usr/bin/firefox-esr --profile "$PROFILE" -new-tab "$SECOND_URL" 2>/dev/null || true
+      sleep 2
+      focus_ha_tab
+    fi
+  ) &
 }
 W=1920
 H=1080
@@ -68,6 +115,8 @@ if [ "$KIOSK_FIREFOX_WAYLAND" != "1" ] && command -v xrandr >/dev/null 2>&1; the
   fi
 fi
 "${HOME}/bin/kiosk-firefox-userjs.sh" "$PROFILE"
+
+wait_for_network || echo "réseau partiel (on lance quand même)" >>"${HOME}/kiosk.log"
 
 pkill -9 -f firefox-esr 2>/dev/null || true
 sleep 2
@@ -88,6 +137,8 @@ if [ -n "$SECOND_URL" ]; then
   echo "2e onglet (arrière-plan): $SECOND_URL" >>"$LOG"
   focus_ha_tab
 fi
+
+kiosk_nudge_load
 
 if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ]; then
   pgrep -af "firefox-esr.*8123" | head -1 >>"$LOG"

@@ -5,7 +5,7 @@ CONF_FILE="${HOME}/.config/ha-kiosk.env"
 [ -r "$CONF_FILE" ] && . "$CONF_FILE"
 export DISPLAY="${DISPLAY:-:0}"
 KIOSK_LOVELACE_PATH="${KIOSK_LOVELACE_PATH:-/pi-kiosk-dash/test}"
-KIOSK_BROWSER="${KIOSK_BROWSER:-chromium}"
+KIOSK_BROWSER="${KIOSK_BROWSER:-firefox-esr}"
 HA_BASE="${HA_URL:-http://192.168.1.51:8123}"
 HA_BASE="${HA_BASE%/}"
 USE_OAUTH=0
@@ -14,6 +14,8 @@ USE_OAUTH=0
 if [ "$USE_OAUTH" -eq 1 ]; then
   python3 "${HOME}/bin/ha-kiosk-oauth-login.py" 2>/dev/null || USE_OAUTH=0
 fi
+
+"${HOME}/bin/kiosk-virtual-keyboard.sh" 2>/dev/null || true
 
 if [ -n "${KIOSK_URL:-}" ]; then
   URL="$KIOSK_URL"
@@ -89,7 +91,10 @@ sleep 1
 
 if [ "$USE_OAUTH" -eq 1 ] || [[ "$URL" != *authSig=* ]]; then
   python3 "${HOME}/bin/ha-kiosk-inject-ha-auth.py" || true
-  [ "$KIOSK_BROWSER" = "chromium" ] && python3 "${HOME}/bin/ha-kiosk-inject-chromium-auth.py" 2>/dev/null || true
+  if [ "$KIOSK_BROWSER" = "chromium" ]; then
+    python3 "${HOME}/bin/ha-kiosk-inject-chromium-auth.py" 2>/dev/null || true
+    python3 "${HOME}/bin/ha-kiosk-chromium-extension.py" 2>/dev/null || true
+  fi
 fi
 
 PROFILE="${HOME}/.mozilla/ha-kiosk-profile"
@@ -107,12 +112,18 @@ USERJS
 
 if [ "$KIOSK_BROWSER" = "chromium" ] && command -v chromium >/dev/null 2>&1; then
   CHR_PROFILE="${HOME}/.config/chromium-kiosk"
+  CHR_EXT="${HOME}/.config/ha-kiosk-chromium-ext"
   mkdir -p "$CHR_PROFILE"
+  CHROME_EXTRA=()
+  if [ -d "$CHR_EXT" ] && [ -f "$CHR_EXT/manifest.json" ]; then
+    CHROME_EXTRA+=(--disable-extensions-except="$CHR_EXT" --load-extension="$CHR_EXT")
+  fi
   chromium --user-data-dir="$CHR_PROFILE" \
     --kiosk --noerrdialogs --disable-infobars --no-first-run \
     --disable-session-crashed-bubble --password-store=basic \
     --disable-features=Translate,TranslateUI \
     --disable-gpu --disable-dev-shm-usage \
+    "${CHROME_EXTRA[@]}" \
     "$URL" &
 else
   firefox-esr -profile "$PROFILE" -no-remote -kiosk "$URL" &

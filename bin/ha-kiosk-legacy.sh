@@ -15,6 +15,7 @@ export SECRET_SERVICE_DISABLE=1
 HA_BASE="${HA_URL:-http://192.168.1.51:8123}"
 HA_BASE="${HA_BASE%/}"
 PATH_VIEW="${KIOSK_LOVELACE_PATH:-/lovelace/ecranmural}"
+SECOND_URL="${KIOSK_SECOND_URL:-}"
 
 URL="$(KIOSK_USE_LEGACY_TOKEN=1 HA_URL="$HA_BASE" KIOSK_PATH="$PATH_VIEW" \
   python3 "${HOME}/bin/ha-kiosk-signed-url.py" 2>/dev/null)" || URL="${HA_BASE}${PATH_VIEW}"
@@ -75,5 +76,17 @@ for _ in 1 2 3 4 5; do
   eval "$(xdotool getwindowgeometry --shell "$WID" 2>/dev/null)"
   [ "${WIDTH:-0}" -ge "$((W - 20))" ] && [ "${HEIGHT:-0}" -ge "$((H - 20))" ] && break
 done
+
+if [ -n "$SECOND_URL" ]; then
+  xdotool windowactivate --sync "$WID" 2>/dev/null || true
+  xdotool key --window "$WID" ctrl+t 2>/dev/null || true
+  sleep 2
+  xdotool type --delay 35 --window "$WID" -- "$SECOND_URL" 2>/dev/null || true
+  xdotool key --window "$WID" Return 2>/dev/null || true
+  sleep 3
+  xdotool key --window "$WID" ctrl+1 2>/dev/null || true
+  echo "2e onglet: $SECOND_URL" >>"$LOG"
+fi
+
 pgrep -af "firefox-esr.*8123" | head -1 >>"$LOG"
 exit 0

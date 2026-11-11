@@ -27,6 +27,7 @@ def main() -> int:
         "manifest_version": 3,
         "name": "HA Kiosk Auth",
         "version": "1",
+        "host_permissions": [f"{HASS_URL}/*"],
         "content_scripts": [
             {
                 "matches": [f"{HASS_URL}/*"],
@@ -44,7 +45,7 @@ def main() -> int:
         "  try {\n"
         f"    const v = {json.dumps(payload)};\n"
         "    const cur = localStorage.getItem('hassTokens');\n"
-        "    if (!cur || cur.length < 50) localStorage.setItem('hassTokens', v);\n"
+        "    localStorage.setItem('hassTokens', v);\n"
         "  } catch (e) {}\n"
         "})();\n"
     )

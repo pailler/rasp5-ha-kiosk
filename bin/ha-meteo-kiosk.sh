@@ -17,13 +17,19 @@ fi
 
 "${HOME}/bin/kiosk-virtual-keyboard.sh" 2>/dev/null || true
 
+SIGNED_URL=""
+if [ "$KIOSK_BROWSER" = "chromium" ] || [ "$USE_OAUTH" -eq 0 ]; then
+  SIGNED_URL="$(HA_URL="$HA_BASE" KIOSK_PATH="$KIOSK_LOVELACE_PATH" python3 "${HOME}/bin/ha-kiosk-signed-url.py" 2>/dev/null)" || true
+fi
+
 if [ -n "${KIOSK_URL:-}" ]; then
   URL="$KIOSK_URL"
+elif [ -n "$SIGNED_URL" ]; then
+  URL="$SIGNED_URL"
 elif [ "$USE_OAUTH" -eq 1 ]; then
   URL="${HA_BASE}${KIOSK_LOVELACE_PATH}"
 else
-  KIOSK_URL="$(HA_URL="$HA_BASE" KIOSK_PATH="$KIOSK_LOVELACE_PATH" python3 "${HOME}/bin/ha-kiosk-signed-url.py" 2>/dev/null)" || true
-  URL="${KIOSK_URL:-${HA_BASE}${KIOSK_LOVELACE_PATH}}"
+  URL="${HA_BASE}${KIOSK_LOVELACE_PATH}"
 fi
 export KIOSK_PATH="$KIOSK_LOVELACE_PATH"
 W=1920

@@ -22,11 +22,29 @@ if not KIOSK_PATH.startswith("/"):
     KIOSK_PATH = "/" + KIOSK_PATH
 SIG_EXPIRES = int(os.environ.get("KIOSK_AUTHSIG_EXPIRES", "86400"))
 TOKEN_FILE = os.environ.get("HA_TOKEN_FILE", os.path.expanduser("~/.config/ha-api-token"))
+OAUTH_FILE = os.path.expanduser("~/.config/ha-frontend-tokens.json")
 
 
 def read_token() -> str:
-    with open(TOKEN_FILE, encoding="utf-8") as f:
-        return f.read().strip().replace("\r", "").replace("\n", "")
+    if os.path.isfile(TOKEN_FILE):
+        token = open(TOKEN_FILE, encoding="utf-8").read().strip().replace("\r", "").replace("\n", "")
+        if len(token) >= 20:
+            return token
+    if os.path.isfile(OAUTH_FILE):
+        try:
+            data = json.loads(open(OAUTH_FILE, encoding="utf-8").read())
+            raw = data.get("raw") or {}
+            if isinstance(raw.get("access_token"), str) and len(raw["access_token"]) > 20:
+                return raw["access_token"]
+            hass = data.get("hassTokens")
+            if isinstance(hass, str):
+                parsed = json.loads(hass)
+                tok = parsed.get("access_token")
+                if isinstance(tok, str) and len(tok) > 20:
+                    return tok
+        except (json.JSONDecodeError, OSError, TypeError, KeyError):
+            pass
+    raise FileNotFoundError(f"Jeton manquant ({TOKEN_FILE} ou {OAUTH_FILE})")
 
 
 def ws_url(hass_url: str) -> str:
@@ -62,12 +80,10 @@ def sign_path(hass_url: str, path: str, token: str, expires: int) -> str:
 
 
 def main() -> int:
-    if not os.path.isfile(TOKEN_FILE):
-        print(f"Jeton manquant: {TOKEN_FILE}", file=sys.stderr)
-        return 1
-    token = read_token()
-    if len(token) < 20:
-        print("Jeton invalide", file=sys.stderr)
+    try:
+        token = read_token()
+    except FileNotFoundError as e:
+        print(str(e), file=sys.stderr)
         return 1
     signed = sign_path(HASS_URL, KIOSK_PATH, token, SIG_EXPIRES)
     if not signed.startswith("/"):

@@ -105,8 +105,9 @@ PROFILE="${HOME}/.mozilla/ha-kiosk-profile"
 mkdir -p "$PROFILE"
 rm -f "$PROFILE"/sessionstore.json* "$PROFILE"/sessionCheckpoints.json 2>/dev/null || true
 cat >"$PROFILE/user.js" <<'USERJS'
-user_pref("dom.ipc.processCount", 4);
-user_pref("dom.ipc.processCount.web", 4);
+user_pref("dom.ipc.processCount", 2);
+user_pref("dom.ipc.processCount.web", 1);
+user_pref("browser.cache.memory.capacity", 32768);
 user_pref("browser.cache.disk.enable", false);
 user_pref("browser.sessionstore.restore_on_demand", true);
 user_pref("browser.sessionstore.max_tabs_undo", 0);

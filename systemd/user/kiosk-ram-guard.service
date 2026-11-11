@@ -1,0 +1,6 @@
+[Unit]
+Description=Recycle Firefox si la RAM grimpe
+
+[Service]
+Type=oneshot
+ExecStart=%h/bin/kiosk-ram-guard.sh

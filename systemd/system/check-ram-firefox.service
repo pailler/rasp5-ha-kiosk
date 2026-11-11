@@ -3,4 +3,8 @@ Description=Surveillance RAM Firefox (kiosque HA)
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/bin/check-ram-firefox.sh
+User=rasp5
+Group=rasp5
+WorkingDirectory=/home/rasp5
+Environment=HOME=/home/rasp5
+ExecStart=/home/rasp5/bin/kiosk-ram-guard.sh

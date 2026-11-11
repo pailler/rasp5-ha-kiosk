@@ -2,8 +2,8 @@
 Description=Contrôle RAM Firefox toutes les 5 minutes
 
 [Timer]
-OnBootSec=5min
-OnUnitActiveSec=5min
+OnBootSec=3min
+OnUnitActiveSec=2min
 Persistent=true
 
 [Install]

@@ -1,5 +1,7 @@
 #!/bin/bash
 # Évite le gel du Pi quand la RAM sature (surtout Firefox / Lovelace).
+# shellcheck source=kiosk-session-env.sh
+. "$(dirname "$0")/kiosk-session-env.sh"
 LOG="${HOME}/ram-guard.log"
 COOLDOWN=/tmp/kiosk-ram-guard.cooldown
 CRITICAL_COOLDOWN=/tmp/kiosk-ram-guard-critical.cooldown
@@ -38,7 +40,7 @@ fi
 STAMP="${HOME}/.kiosk-last-recycle"
 last_recycle=0
 [ -f "$STAMP" ] && last_recycle=$(cat "$STAMP" 2>/dev/null || echo 0)
-if [ $((now - last_recycle)) -ge 14400 ]; then
+if [ $((now - last_recycle)) -ge 7200 ]; then
   log "recyclage préventif 4h (ff_rss=${ff_rss}kB)"
   "${HOME}/bin/ha-meteo-kiosk.sh" >>"$LOG" 2>&1
   echo "$now" >"$STAMP"
@@ -64,7 +66,7 @@ if [ "$mem_avail" -lt 120000 ] || [ "$pct" -ge 94 ]; then
   exit 0
 fi
 
-if [ "$ff_rss" -gt 2400000 ] || [ "$mem_avail" -lt 350000 ] || [ "$pct" -ge 88 ]; then
+if [ "$ff_rss" -gt 950000 ] || [ "$mem_avail" -lt 450000 ] || [ "$pct" -ge 82 ]; then
   log "seuil ff_rss=${ff_rss}kB avail=${mem_avail}kB pct=${pct}% → recycle firefox"
   "${HOME}/bin/ha-meteo-kiosk.sh" >>"$LOG" 2>&1
   echo "$now" >"$COOLDOWN"

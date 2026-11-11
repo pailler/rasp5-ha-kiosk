@@ -37,6 +37,9 @@ lines = [
     'user_pref("zoom.minPercent", 50);',
     'user_pref("zoom.maxPercent", 300);',
     'user_pref("privacy.resistFingerprinting", false);',
+    'user_pref("browser.tabs.loadInBackground", true);',
+    'user_pref("browser.tabs.loadDivertedInBackground", true);',
+    'user_pref("browser.tabs.focusOccludedInParent", false);',
 ]
 if start_url:
     esc = start_url.replace("\\", "\\\\").replace('"', '\\"')

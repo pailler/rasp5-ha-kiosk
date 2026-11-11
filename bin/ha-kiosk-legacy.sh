@@ -56,13 +56,32 @@ rm -f "$PROFILE"/sessionstore.json* "$PROFILE"/sessionCheckpoints.json "$PROFILE
 rm -rf "$PROFILE"/sessionstore-backups 2>/dev/null || true
 mkdir -p "$PROFILE"/sessionstore-backups
 
+firefox_focus_window() {
+  local wid best="" area=0 w h a name
+  for wid in $(xdotool search --class firefox 2>/dev/null); do
+    name=$(xdotool getwindowname "$wid" 2>/dev/null)
+    eval "$(xdotool getwindowgeometry --shell "$wid" 2>/dev/null)"
+    w=${WIDTH:-0}
+    h=${HEIGHT:-0}
+    a=$((w * h))
+    echo "$name" | grep -qiE 'firefox|assistant|iahome|chargement' || continue
+    [ "$a" -gt "$area" ] && area=$a && best=$wid
+  done
+  [ -n "$best" ] && xdotool windowactivate --sync "$best" 2>/dev/null
+}
+
 focus_ha_tab() {
-  sleep 1
-  if command -v wtype >/dev/null 2>&1; then
-    wtype -M ctrl -k 1 2>/dev/null || true
-  elif command -v xdotool >/dev/null 2>&1; then
-    xdotool key --clearmodifiers ctrl+1 2>/dev/null || true
-  fi
+  local _i
+  for _i in 1 2 3 4; do
+    firefox_focus_window 2>/dev/null || true
+    sleep 0.4
+    if command -v wtype >/dev/null 2>&1; then
+      wtype -M ctrl -k 1 2>/dev/null || true
+    elif command -v xdotool >/dev/null 2>&1; then
+      xdotool key --clearmodifiers ctrl+1 2>/dev/null || true
+    fi
+    sleep 0.5
+  done
 }
 
 wait_for_network() {
@@ -102,9 +121,21 @@ open_second_tab_background() {
   local url="$1"
   [ -z "$url" ] && return 0
   wait_firefox_ready || true
-  /usr/bin/firefox-esr --profile "$PROFILE" -new-tab "$url" 2>/dev/null || true
-  sleep 2
+  firefox_focus_window 2>/dev/null || true
+  if ! /usr/bin/firefox-esr --profile "$PROFILE" -remote "openURL(${url},new-background-tab)" 2>/dev/null; then
+    /usr/bin/firefox-esr --profile "$PROFILE" -new-tab "$url" 2>/dev/null || true
+  fi
+  sleep 1
   focus_ha_tab
+}
+
+kiosk_focus_ha_loop() {
+  (
+    for _ in 1 2 3 4 5 6 8 10; do
+      sleep 8
+      focus_ha_tab
+    done
+  ) &
 }
 
 kiosk_nudge_load() {
@@ -115,6 +146,7 @@ kiosk_nudge_load() {
     "${HOME}/bin/kiosk-firefox-userjs.sh" "$PROFILE" "$u"
     focus_ha_tab
     command -v wtype >/dev/null && wtype -k F5 2>/dev/null || true
+    focus_ha_tab
   ) &
 }
 W=1920
@@ -141,7 +173,7 @@ HA_START_PAGE="file://${PROFILE}/kiosk-start.html"
 FF_CMD=(/usr/bin/firefox-esr --no-remote --profile "$PROFILE" --start-maximized)
 "${FF_CMD[@]}" "$HA_START_PAGE" &
 
-sleep 18
+sleep 22
 pgrep -f hide-desktop-loop >/dev/null || "${HOME}/bin/hide-desktop-loop.sh" &
 
 if [ -n "$SECOND_URL" ]; then
@@ -150,6 +182,7 @@ if [ -n "$SECOND_URL" ]; then
   focus_ha_tab
 fi
 
+kiosk_focus_ha_loop
 kiosk_nudge_load
 
 if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ]; then

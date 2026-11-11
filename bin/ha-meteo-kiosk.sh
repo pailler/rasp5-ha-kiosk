@@ -55,6 +55,8 @@ if pgrep -x firefox-esr >/dev/null; then
   sleep 2
 fi
 
+python3 "${HOME}/bin/ha-kiosk-inject-ha-auth.py" || true
+
 PROFILE="${HOME}/.mozilla/ha-kiosk-profile"
 mkdir -p "$PROFILE"
 cat >"$PROFILE/user.js" <<'USERJS'

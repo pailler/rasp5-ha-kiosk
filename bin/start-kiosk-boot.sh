@@ -65,7 +65,7 @@ for attempt in 1 2 3; do
 else
   "${HOME}/bin/ha-meteo-kiosk.sh" || true
 fi
-  sleep 8
+  sleep 30
   if "${HOME}/bin/kiosk-browser-active.sh"; then
     echo "kiosque OK (tentative $attempt)"
     break

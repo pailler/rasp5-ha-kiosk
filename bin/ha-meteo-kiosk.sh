@@ -6,6 +6,8 @@ CONF_FILE="${HOME}/.config/ha-kiosk.env"
 export DISPLAY="${DISPLAY:-:0}"
 KIOSK_LOVELACE_PATH="${KIOSK_LOVELACE_PATH:-/pi-kiosk-dash/test}"
 KIOSK_BROWSER="${KIOSK_BROWSER:-firefox-esr}"
+# 0 = Firefox plein écran (F11), pas --kiosk (souvent plus stable sur Pi)
+KIOSK_KIOSK_MODE="${KIOSK_KIOSK_MODE:-1}"
 HA_BASE="${HA_URL:-http://192.168.1.51:8123}"
 HA_BASE="${HA_BASE%/}"
 USE_OAUTH=0
@@ -130,8 +132,10 @@ if [ "$KIOSK_BROWSER" = "chromium" ] && command -v chromium >/dev/null 2>&1; the
   if [ -d "$CHR_EXT" ] && [ -f "$CHR_EXT/manifest.json" ]; then
     CHROME_EXTRA+=(--disable-extensions-except="$CHR_EXT" --load-extension="$CHR_EXT")
   fi
+  CHR_KIOSK=(--kiosk)
+  [ "$KIOSK_KIOSK_MODE" = "0" ] && CHR_KIOSK=(--start-fullscreen --app="$URL")
   chromium --user-data-dir="$CHR_PROFILE" \
-    --kiosk --noerrdialogs --disable-infobars --no-first-run \
+    "${CHR_KIOSK[@]}" --noerrdialogs --disable-infobars --no-first-run \
     --disable-session-crashed-bubble --password-store=basic \
     --disable-features=Translate,TranslateUI \
     --disable-gpu --disable-dev-shm-usage \
@@ -142,7 +146,27 @@ else
   export MOZ_X11_EGL=0
   export GDK_BACKEND=x11
   unset WAYLAND_DISPLAY
-  firefox-esr -profile "$PROFILE" -no-remote -kiosk "$URL" &
+  if [ "$KIOSK_KIOSK_MODE" = "0" ]; then
+    firefox-esr -profile "$PROFILE" -no-remote -new-window "$URL" &
+  else
+    firefox-esr -profile "$PROFILE" -no-remote -kiosk "$URL" &
+  fi
+fi
+
+if [ "$KIOSK_KIOSK_MODE" = "0" ] && [ "$KIOSK_BROWSER" != "chromium" ]; then
+  (
+    sleep 4
+    for _ in 1 2 3 4 5 6 7 8; do
+      WID=$(find_main_window)
+      if [ -n "$WID" ]; then
+        xdotool windowactivate --sync "$WID" 2>/dev/null
+        xdotool key --window "$WID" F11 2>/dev/null
+        resize_main_window "$WID"
+        break
+      fi
+      sleep 2
+    done
+  ) &
 fi
 
 # Lovelace lourd (cartes custom ecranmural) : rechargements échelonnés

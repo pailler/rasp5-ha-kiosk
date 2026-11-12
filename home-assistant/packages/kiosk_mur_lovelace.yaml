@@ -38,7 +38,7 @@ input_select:
       - media_player.musique_bose_4
       - media_player.musique_bose_2
       - media_player.musique_bose
-    initial: media_player.musique_bose_4
+    initial: media_player.musique_bose_2
 
 script:
   mural_lancer_youtube_onglet2:
@@ -85,7 +85,7 @@ script:
             {{ s == 'on' if s not in ['unknown', 'unavailable'] else true }}
           bose_player: >-
             {{ states('input_select.mural_bose_media_player')
-               | default('media_player.musique_bose_4', true) | trim }}
+               | default('media_player.musique_bose_2', true) | trim }}
           navigate_mute: "{{ 1 if bose_audio else 0 }}"
           navigate_url: >-
             https://www.youtube.com/watch?v={{ youtube_id }}{% if bose_audio %}&mute=1{% endif %}
@@ -114,65 +114,85 @@ script:
           entity_id: input_text.mural_youtube_url
         data:
           value: "{{ target_url }}"
-      - action: rest_command.rasp5_kiosk_navigate
-        data:
-          url: "{{ navigate_embed_url }}"
-        continue_on_error: true
-      - if:
-          - condition: template
-            value_template: "{{ bose_audio and youtube_id | length >= 6 }}"
-        then:
-          - action: switch.turn_on
-            target:
-              entity_id: switch.multiprise_musique_bose
-            continue_on_error: true
-          - delay:
-              seconds: 8
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ 'musique_bose_4' in bose_player }}"
-                sequence:
-                  - action: music_assistant.play_media
-                    data:
-                      entity_id: "{{ bose_player }}"
-                      media_id: "{{ target_url }}"
-                    continue_on_error: true
-              - conditions:
-                  - condition: template
-                    value_template: "{{ 'musique_bose_2' in bose_player }}"
-                sequence:
-                  - action: media_player.turn_on
-                    target:
-                      entity_id: "{{ bose_player }}"
-                    continue_on_error: true
-                  - action: media_player.volume_set
-                    target:
-                      entity_id: "{{ bose_player }}"
-                    data:
-                      volume_level: 0.5
-                    continue_on_error: true
-                  - action: media_player.play_media
-                    target:
-                      entity_id: "{{ bose_player }}"
-                    data:
-                      media_content_id: "{{ youtube_id }}"
-                      media_content_type: youtube
-                    continue_on_error: true
-            default:
-              - action: media_player.volume_set
-                target:
-                  entity_id: "{{ bose_player }}"
+      - parallel:
+          - sequence:
+              - action: rest_command.rasp5_kiosk_navigate
                 data:
-                  volume_level: 0.45
+                  url: "{{ navigate_embed_url }}"
                 continue_on_error: true
-              - action: media_player.play_media
-                target:
-                  entity_id: "{{ bose_player }}"
-                data:
-                  media_content_id: "{{ target_url }}"
-                  media_content_type: music
-                continue_on_error: true
+          - sequence:
+              - if:
+                  - condition: template
+                    value_template: "{{ bose_audio and youtube_id | length >= 6 }}"
+                then:
+                  - action: switch.turn_on
+                    target:
+                      entity_id: switch.multiprise_musique_bose
+                    continue_on_error: true
+                  - delay:
+                      seconds: 12
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ 'musique_bose_2' in bose_player }}"
+                        sequence:
+                          - action: media_player.turn_on
+                            target:
+                              entity_id: media_player.musique_bose_2
+                            continue_on_error: true
+                          - delay:
+                              seconds: 2
+                          - action: media_player.volume_set
+                            target:
+                              entity_id: media_player.musique_bose_2
+                            data:
+                              volume_level: 0.55
+                            continue_on_error: true
+                          - action: media_player.play_media
+                            target:
+                              entity_id: media_player.musique_bose_2
+                            data:
+                              media_content_id: >-
+                                https://www.youtube.com/watch?v={{ youtube_id }}
+                              media_content_type: cast
+                            continue_on_error: true
+                          - delay:
+                              seconds: 3
+                          - action: media_player.play_media
+                            target:
+                              entity_id: media_player.musique_bose_2
+                            data:
+                              media_content_id: "{{ youtube_id }}"
+                              media_content_type: youtube
+                            continue_on_error: true
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ 'musique_bose_4' in bose_player }}"
+                        sequence:
+                          - action: music_assistant.play_media
+                            data:
+                              entity_id: "{{ bose_player }}"
+                              media_id: "{{ target_url }}"
+                              media_type: track
+                              enqueue: replace
+                            continue_on_error: true
+                          - delay:
+                              seconds: 4
+                          - action: music_assistant.play_media
+                            data:
+                              entity_id: "{{ bose_player }}"
+                              media_id: "{{ youtube_id }}"
+                              media_type: track
+                              enqueue: replace
+                            continue_on_error: true
+                    default:
+                      - action: media_player.play_media
+                        target:
+                          entity_id: "{{ bose_player }}"
+                        data:
+                          media_content_id: "{{ target_url }}"
+                          media_content_type: music
+                        continue_on_error: true
 
   mural_retour_accueil_lovelace:
     alias: Mur — Retour accueil Lovelace
@@ -187,5 +207,5 @@ script:
         target:
           entity_id: >-
             {{ states('input_select.mural_bose_media_player')
-               | default('media_player.musique_bose_4', true) | trim }}
+               | default('media_player.musique_bose_2', true) | trim }}
         continue_on_error: true

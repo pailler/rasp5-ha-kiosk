@@ -1,5 +1,5 @@
 #!/bin/bash
-# Onglet vide / about:blank : charge l’URL HA signée (authSig) dans l’onglet existant.
+# Onglet vide : charge l’URL HA signée sans firefox -remote.
 set -uo pipefail
 . "$(dirname "$0")/kiosk-session-env.sh"
 CONF="${HOME}/.config/ha-kiosk.env"
@@ -23,9 +23,10 @@ done
 [ -z "$url" ] && url="${HA_BASE}${PATH_VIEW}"
 printf '%s\n' "$url" >"$URL_FILE"
 
-"${HOME}/bin/kiosk-wait-firefox-remote.sh" 30 1 >/dev/null 2>&1 || true
-
-js="$(python3 - "$url" <<'PY'
+sleep 3
+if [ "${KIOSK_NO_REMOTE:-1}" != "1" ]; then
+  "${HOME}/bin/kiosk-wait-firefox-remote.sh" 10 1 >/dev/null 2>&1 || true
+  js="$(python3 - "$url" <<'PY'
 import json, sys
 u = json.dumps(sys.argv[1])
 print(
@@ -33,8 +34,6 @@ print(
     f"var want={u};"
     "var w=Services.wm.getMostRecentBrowserWindow();if(!w||!w.gBrowser)return;"
     "var g=w.gBrowser;var t=g.selectedTab||g.tabs[0];if(!t)return;"
-    "var cur='';try{cur=t.linkedBrowser.currentURI.spec;}catch(e){}"
-    "if(cur.indexOf('lovelace')>=0&&cur.indexOf('8123')>=0)return;"
     "try{"
     "var uri=Services.io.newURI(want,null,t.linkedBrowser.currentURI);"
     "t.linkedBrowser.loadURI(uri,{triggeringPrincipal:Services.scriptSecurityManager.getSystemPrincipal()});"
@@ -44,25 +43,22 @@ print(
 )
 PY
 )"
-
-if "${HOME}/bin/kiosk-firefox-remote.sh" "$js" 2>/dev/null; then
-  echo "ensure-ha-url: remote OK $(date)" >>"$LOG"
-  exit 0
+  if "${HOME}/bin/kiosk-firefox-remote.sh" "$js" 2>/dev/null; then
+    echo "ensure-ha-url: remote OK $(date)" >>"$LOG"
+    exit 0
+  fi
 fi
 
-if command -v wtype >/dev/null 2>&1; then
-  "${HOME}/bin/kiosk-focus-firefox-window.sh" 2>/dev/null || true
-  sleep 0.2
-  wtype -k F6 2>/dev/null || true
-  sleep 0.35
-  wtype -M ctrl -k a 2>/dev/null || true
-  sleep 0.1
-  wtype -P "$url" 2>/dev/null || true
-  sleep 0.1
-  wtype -k Return 2>/dev/null || true
+"${HOME}/bin/kiosk-wtype-goto-url.sh" "$url" && {
   echo "ensure-ha-url: wtype $(date)" >>"$LOG"
   exit 0
-fi
+}
 
-echo "ensure-ha-url: échec $(date)" >>"$LOG"
-exit 1
+echo "ensure-ha-url: relance propre avec URL $(date)" >>"$LOG"
+pkill -f 'firefox-esr.*kiosk-profile' 2>/dev/null || true
+sleep 2
+rm -f /tmp/kiosk-firefox-launch.lock /tmp/ha-kiosk-legacy.lock
+export DISPLAY="${DISPLAY:-:0}"
+nohup /usr/bin/firefox-esr --no-remote --profile "${HOME}/.mozilla/kiosk-profile" \
+  --start-maximized "$url" </dev/null >>"$LOG" 2>&1 &
+exit 0

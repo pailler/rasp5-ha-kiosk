@@ -232,7 +232,6 @@ else
   echo "boot: 1 seul onglet HA (onglet 2 à la demande YouTube)" >>"$LOG"
 fi
 
-focus_ha_tab
 "${HOME}/bin/kiosk-prune-extra-firefox.sh" 2>/dev/null || true
 if [ "${KIOSK_APPLY_FULLSCREEN:-0}" = "1" ]; then
   "${HOME}/bin/kiosk-apply-fullscreen.sh" 2>/dev/null || true

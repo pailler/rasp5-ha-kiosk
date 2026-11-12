@@ -19,3 +19,5 @@ export WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-1}"
 export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=${XDG_RUNTIME_DIR}/bus}"
 # Kiosque stable via XWayland (évite les erreurs Firefox « channel error » hors session).
 export MOZ_DISABLE_WAYLAND="${MOZ_DISABLE_WAYLAND:-1}"
+# Sur Pi 5, firefox -remote provoque « Exiting due to channel error » → navigation wtype / relance URL.
+export KIOSK_NO_REMOTE="${KIOSK_NO_REMOTE:-1}"

@@ -58,7 +58,7 @@ fi
 if [ "$n" -gt 1 ]; then
   "${HOME}/bin/kiosk-prune-extra-firefox.sh" || true
 fi
-"${HOME}/bin/kiosk-focus-tab.sh" 1 2>/dev/null || true
+"${HOME}/bin/kiosk-ensure-ha-url.sh" 2>/dev/null || true
 n=$(pgrep -af 'firefox-esr.*kiosk-profile.*--no-remote' 2>/dev/null | wc -l)
 echo "OK: firefox_instances=${n}"
 ps -C firefox-esr -o pid=,args= | grep 'kiosk-profile.*--no-remote' | head -3

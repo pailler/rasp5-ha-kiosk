@@ -75,10 +75,7 @@ for _ in $(seq 1 90); do
     sleep 2
     continue
   fi
-  if [ -x "${HOME}/bin/kiosk-wait-firefox-remote.sh" ]; then
-    "${HOME}/bin/kiosk-wait-firefox-remote.sh" 15 2 >/dev/null || { sleep 2; continue; }
-  fi
-  sleep 5
+  sleep 8
   "${HOME}/bin/kiosk-browser-active.sh" || { sleep 2; continue; }
   if [ -x "${HOME}/bin/kiosk-prune-extra-firefox.sh" ]; then
     "${HOME}/bin/kiosk-prune-extra-firefox.sh" || true

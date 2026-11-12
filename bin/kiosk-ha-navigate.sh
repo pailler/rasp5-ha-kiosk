@@ -37,20 +37,12 @@ print(
 PY
 )"
 
-if "${HOME}/bin/kiosk-firefox-remote.sh" "$js"; then
+if [ "${KIOSK_NO_REMOTE:-1}" != "1" ] && "${HOME}/bin/kiosk-firefox-remote.sh" "$js"; then
   echo "navigate: ${PATH_REL} $(date)" >>"$LOG"
   exit 0
 fi
 
-if command -v wtype >/dev/null 2>&1; then
-  "${HOME}/bin/kiosk-focus-firefox-window.sh" 2>/dev/null || true
-  wtype -k F6 2>/dev/null || true
-  sleep 0.35
-  wtype -M ctrl -k a 2>/dev/null || true
-  sleep 0.1
-  wtype -P "$target" 2>/dev/null || true
-  sleep 0.1
-  wtype -k Return 2>/dev/null || true
+if "${HOME}/bin/kiosk-wtype-goto-url.sh" "$target"; then
   echo "navigate (wtype): ${PATH_REL} $(date)" >>"$LOG"
   exit 0
 fi

@@ -1,11 +1,15 @@
 #!/bin/bash
-# Attend Firefox ESR + instance -remote prête (évite une 2e fenêtre au -remote).
+# Attend Firefox kiosque. Si KIOSK_NO_REMOTE=1 : pas de ping -remote (crash Pi 5).
 set -uo pipefail
 . "$(dirname "$0")/kiosk-session-env.sh"
-PROFILE="${HOME}/.mozilla/kiosk-profile"
 TRIES="${1:-40}"
 SLEEP="${2:-2}"
 
+if [ "${KIOSK_NO_REMOTE:-1}" = "1" ]; then
+  exec "${HOME}/bin/kiosk-wait-firefox-process.sh" "$TRIES" "$SLEEP"
+fi
+
+PROFILE="${HOME}/.mozilla/kiosk-profile"
 for _ in $(seq 1 "$TRIES"); do
   pgrep -x firefox-esr >/dev/null 2>&1 || { sleep "$SLEEP"; continue; }
   out="$(timeout 4 /usr/bin/firefox-esr --profile "$PROFILE" -remote 'ping()' 2>&1)" || out=""

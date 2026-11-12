@@ -149,23 +149,11 @@ pkill -x onboard 2>/dev/null || true
 echo "=== ha-kiosk-legacy $(date) wayland=$KIOSK_FIREFOX_WAYLAND === URL=$URL" >>"$LOG"
 
 FULLSCREEN_MODE="${KIOSK_FULLSCREEN:-fullscreen}"
-USE_KIOSK_FLAG=0
-if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ] && [ -z "$SECOND_URL" ] \
-  && [ "$FULLSCREEN_MODE" != "f11" ]; then
-  USE_KIOSK_FLAG=1
-fi
-
-if [ "$USE_KIOSK_FLAG" = "1" ]; then
-  FF_CMD=(/usr/bin/firefox-esr --no-remote --profile "$PROFILE" --kiosk)
-  echo "lancement Firefox --kiosk (1 onglet HA)" >>"$LOG"
-else
-  FF_CMD=(/usr/bin/firefox-esr --no-remote --profile "$PROFILE" --start-maximized)
-fi
+# --kiosk provoque écran noir sur Pi 5 + Wayfire ; plein écran = start-maximized + Wayfire.
+FF_CMD=(/usr/bin/firefox-esr --no-remote --profile "$PROFILE" --start-maximized)
 
 "${FF_CMD[@]}" "$URL" &
-if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ] && [ "$USE_KIOSK_FLAG" != "1" ]; then
-  "${HOME}/bin/kiosk-apply-fullscreen.sh" 2>/dev/null || true
-elif [ "$USE_KIOSK_FLAG" != "1" ] && [ "$FULLSCREEN_MODE" = "f11" ]; then
+if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ] && [ "$FULLSCREEN_MODE" != "0" ]; then
   "${HOME}/bin/kiosk-apply-fullscreen.sh" 2>/dev/null || true
 fi
 

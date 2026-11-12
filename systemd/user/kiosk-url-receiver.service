@@ -1,0 +1,14 @@
+[Unit]
+Description=HTTP kiosk : YouTube onglet 2 (Home Assistant)
+After=graphical-session.target
+
+[Service]
+Type=simple
+Environment=DISPLAY=:0
+Environment=WAYLAND_DISPLAY=wayland-1
+ExecStart=%h/bin/kiosk-url-receiver.py
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

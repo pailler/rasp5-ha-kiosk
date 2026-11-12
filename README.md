@@ -16,6 +16,7 @@ Firefox + tableau Lovelace consomment beaucoup de RAM (processus multiprocess). 
 | `kiosk-ram-guard.sh` | Recyclage 4 h, seuils RAM, veille d’urgence |
 | `ha-veille-watch.sh` | Veille si absent (HA) ou nuit 01h–07h |
 | `veille-ram.sh` / `reveil-kiosk.sh` | Arrêt Firefox + extinction écran / réveil |
+| `kiosk-url-receiver.py` + `kiosk-open-tab2-url.sh` | YouTube / URL → **onglet 2** depuis Home Assistant (voir `docs/HA-YOUTUBE-ONGLET2.md`) |
 
 Timers système : `check-ram-firefox`, `check-firefox` (toutes les 5 min).
 

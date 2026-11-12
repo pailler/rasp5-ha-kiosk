@@ -14,9 +14,17 @@ usage() {
 install_local() {
   echo "→ bin/"
   install -d -m 755 "${KIOSK_HOME}/bin"
-  for f in "${REPO_ROOT}"/bin/*.sh; do
+  for f in "${REPO_ROOT}"/bin/*.sh "${REPO_ROOT}"/bin/*.py; do
+    [ -f "$f" ] || continue
     install -m 755 "$f" "${KIOSK_HOME}/bin/$(basename "$f")"
   done
+
+  TOKEN_FILE="${KIOSK_HOME}/.config/kiosk-http-token"
+  if [ ! -s "$TOKEN_FILE" ]; then
+  runuser -u "$KIOSK_USER" -- bash -c "openssl rand -hex 24 > '$TOKEN_FILE' && chmod 600 '$TOKEN_FILE'"
+    echo "→ Jeton HTTP kiosque créé : $TOKEN_FILE"
+    echo "   HA secrets: rasp5_kiosk_http_authorization: \"Bearer $(runuser -u "$KIOSK_USER" -- cat "$TOKEN_FILE")\""
+  fi
 
   if [ -x "${KIOSK_HOME}/bin/kiosk-wayfire-window-rules.sh" ]; then
     runuser -u "$KIOSK_USER" -- "${KIOSK_HOME}/bin/kiosk-wayfire-window-rules.sh" || true
@@ -45,9 +53,10 @@ install_local() {
   cp "${REPO_ROOT}/systemd/user/firefox-geometry-guard.service" "${KIOSK_HOME}/.config/systemd/user/"
   cp "${REPO_ROOT}/systemd/user/kiosk-veille-watch.service" "${KIOSK_HOME}/.config/systemd/user/"
   cp "${REPO_ROOT}/systemd/user/kiosk-veille-watch.timer" "${KIOSK_HOME}/.config/systemd/user/"
+  cp "${REPO_ROOT}/systemd/user/kiosk-url-receiver.service" "${KIOSK_HOME}/.config/systemd/user/"
   chown -R "${KIOSK_USER}:${KIOSK_USER}" "${KIOSK_HOME}/.config/systemd/user"
   runuser -u "$KIOSK_USER" -- systemctl --user daemon-reload
-  runuser -u "$KIOSK_USER" -- systemctl --user enable --now hide-desktop.service firefox-geometry-guard.service kiosk-veille-watch.timer
+  runuser -u "$KIOSK_USER" -- systemctl --user enable --now hide-desktop.service firefox-geometry-guard.service kiosk-veille-watch.timer kiosk-url-receiver.service
 
   echo "OK. Jeton HA : ${KIOSK_HOME}/.config/ha-api-token (chmod 600)"
 }

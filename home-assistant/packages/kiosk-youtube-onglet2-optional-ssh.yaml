@@ -1,0 +1,7 @@
+# Optionnel — uniquement si Home Assistant peut SSH vers le Pi (clé sans mot de passe)
+# Remplace rest_command si vous ne voulez pas ouvrir le port 8765
+
+shell_command:
+  rasp5_kiosk_focus_ha: >-
+    ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new rasp5@192.168.1.56
+    'DISPLAY=:0 WAYLAND_DISPLAY=wayland-1 /home/rasp5/bin/kiosk-focus-tab.sh 1'

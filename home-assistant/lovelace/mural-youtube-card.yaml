@@ -1,0 +1,22 @@
+# Carte à ajouter dans la vue Lovelace (ex. ecranmural) : Mode YAML sur le dashboard
+
+type: vertical-stack
+title: YouTube — écran mural
+cards:
+  - type: entity
+    entity: input_text.mural_youtube_url
+    name: Lien vidéo ou playlist
+    icon: mdi:link-variant
+  - type: button
+    name: Lancer sur le mur (onglet 2)
+    icon: mdi:youtube
+    show_icon: true
+    tap_action:
+      action: call-service
+      service: script.mural_lancer_youtube_onglet2
+  - type: button
+    name: Revenir à Home Assistant (onglet 1)
+    icon: mdi:home-assistant
+    tap_action:
+      action: call-service
+      service: rest_command.rasp5_kiosk_focus_ha_tab1

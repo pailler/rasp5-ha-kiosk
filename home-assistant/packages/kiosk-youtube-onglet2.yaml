@@ -1,0 +1,46 @@
+# Copier dans le dossier packages/ de Home Assistant (configuration.yaml : homeassistant.packages !include_dir_named packages)
+# secrets.yaml : rasp5_kiosk_http_authorization: "Bearer VOTRE_JETON"  (identique à ~/.config/kiosk-http-token sur le Pi)
+
+input_text:
+  mural_youtube_url:
+    name: YouTube (écran mural)
+    icon: mdi:youtube
+    max: 255
+    initial: "https://www.youtube.com/watch?v="
+
+script:
+  mural_lancer_youtube_onglet2:
+    alias: Mur — YouTube onglet 2 (Pi)
+    mode: single
+    icon: mdi:television-play
+    fields:
+      url:
+        description: URL YouTube (optionnel, sinon champ ci-dessus)
+        example: "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+    sequence:
+      - variables:
+          target_url: >-
+            {% set u = (url | default('') | trim) %}
+            {{ u if u else states('input_text.mural_youtube_url') | trim }}
+      - condition: template
+        value_template: "{{ target_url not in ['', 'unknown', 'unavailable'] }}"
+      - action: rest_command.rasp5_kiosk_youtube_tab2
+        data:
+          url: "{{ target_url }}"
+
+rest_command:
+  rasp5_kiosk_youtube_tab2:
+    url: "http://192.168.1.56:8765/tab2"
+    method: POST
+    headers:
+      Authorization: !secret rasp5_kiosk_http_authorization
+      Content-Type: "application/json"
+    payload: '{"url": {{ url | tojson }}}'
+
+  rasp5_kiosk_focus_ha_tab1:
+    url: "http://192.168.1.56:8765/tab1"
+    method: POST
+    headers:
+      Authorization: !secret rasp5_kiosk_http_authorization
+      Content-Type: "application/json"
+    payload: "{}"

@@ -1,0 +1,17 @@
+# Vue optionnelle (iframe vers la même page /local/ que le script navigate).
+title: mur-youtube
+path: mur-youtube
+icon: mdi:youtube
+cards:
+  - type: button
+    name: Retour accueil
+    icon: mdi:arrow-left
+    tap_action:
+      action: call-service
+      service: script.mural_retour_accueil_lovelace
+  - type: iframe
+    aspect_ratio: "16:9"
+    url: /local/mural-youtube-embed.html
+    card_mod:
+      style: |
+        ha-card { min-height: 70vh; }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Petit serveur HTTP : Home Assistant → ouvre une URL dans l’onglet 2 du kiosque."""
+"""HTTP kiosque : navigation Lovelace (1 onglet) ; /tab2 conservé (déprécié)."""
 from __future__ import annotations
 
 import json
@@ -13,6 +13,7 @@ HOST = os.environ.get("KIOSK_HTTP_HOST", "0.0.0.0")
 PORT = int(os.environ.get("KIOSK_HTTP_PORT", "8765"))
 TOKEN_PATH = os.path.expanduser("~/.config/kiosk-http-token")
 OPEN_SCRIPT = os.path.expanduser("~/bin/kiosk-open-tab2-url.sh")
+NAVIGATE_SCRIPT = os.path.expanduser("~/bin/kiosk-ha-navigate.sh")
 SESSION_ENV = os.path.expanduser("~/bin/kiosk-session-env.sh")
 _LAST_TAB2: tuple[str, float] = ("", 0.0)
 
@@ -94,6 +95,33 @@ class KioskHandler(BaseHTTPRequestHandler):
 
         path = self.path.rstrip("/") or "/"
 
+        if path == "/navigate":
+            length = int(self.headers.get("Content-Length", "0"))
+            raw = self.rfile.read(length) if length else b"{}"
+            try:
+                data = json.loads(raw.decode("utf-8"))
+            except json.JSONDecodeError:
+                self._json(400, {"error": "invalid_json"})
+                return
+            rel = (data.get("path") or "").strip()
+            if not rel:
+                self._json(400, {"error": "missing_path"})
+                return
+            if not os.path.isfile(NAVIGATE_SCRIPT):
+                self._json(503, {"error": "navigate_script_missing"})
+                return
+            try:
+                subprocess.run(
+                    ["/bin/bash", "-lc", f". '{SESSION_ENV}' && exec '{NAVIGATE_SCRIPT}' {json.dumps(rel)}"],
+                    check=True,
+                    timeout=30,
+                )
+            except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+                self._json(502, {"error": "navigate_failed", "detail": str(e)})
+                return
+            self._json(200, {"ok": True, "path": rel})
+            return
+
         if path == "/tab1":
             focus = os.path.expanduser("~/bin/kiosk-focus-tab.sh")
             try:
@@ -159,8 +187,8 @@ class KioskHandler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-    if not os.path.isfile(OPEN_SCRIPT):
-        sys.stderr.write(f"missing {OPEN_SCRIPT}\n")
+    if not os.path.isfile(NAVIGATE_SCRIPT):
+        sys.stderr.write(f"missing {NAVIGATE_SCRIPT}\n")
         sys.exit(1)
     if not load_token():
         sys.stderr.write(f"create {TOKEN_PATH} (chmod 600)\n")

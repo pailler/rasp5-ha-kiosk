@@ -1,0 +1,30 @@
+# Carte mur — navigation Lovelace (tactile sur le Pi, 1 onglet).
+# Coller dans la vue principale du dashboard mural.
+
+type: vertical-stack
+title: Mur — YouTube dans Home Assistant
+cards:
+  - type: entity
+    entity: input_text.mural_youtube_url
+    name: Lien YouTube
+  - type: entity
+    entity: input_boolean.mural_youtube_audio_bose
+    name: Son sur la Bose
+  - type: horizontal-stack
+    cards:
+      - type: button
+        name: Afficher sur le mur
+        icon: mdi:youtube
+        tap_action:
+          action: call-service
+          service: script.mural_afficher_youtube_lovelace
+      - type: button
+        name: Accueil
+        icon: mdi:home-assistant
+        tap_action:
+          action: call-service
+          service: script.mural_retour_accueil_lovelace
+  - type: markdown
+    content: >-
+      **Sur le mur** vous pouvez aussi utiliser les onglets Lovelace : vue *mur-youtube*
+      (iframe) et retour via Accueil. Le téléphone utilise les mêmes scripts (navigation Pi).

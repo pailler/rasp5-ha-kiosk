@@ -1,0 +1,134 @@
+# Mur Pi : tout dans Lovelace (1 onglet Firefox). Pas d’onglet 2 / pas de rest /tab2.
+# secrets.yaml : rasp5_kiosk_http_authorization: "Bearer …"  (~/.config/kiosk-http-token sur le Pi)
+# Ajouter les vues Lovelace depuis home-assistant/lovelace/
+
+input_text:
+  mural_youtube_url:
+    name: YouTube (écran mural)
+    icon: mdi:youtube
+    max: 255
+    initial: ""
+  mural_youtube_embed:
+    name: URL embed YouTube (mur)
+    icon: mdi:youtube-subscription
+    max: 255
+    initial: ""
+  mural_lovelace_path_home:
+    name: Chemin Lovelace — accueil mur
+    icon: mdi:home
+    max: 120
+    initial: "/lovelace/dashboard-principal"
+  mural_lovelace_path_youtube:
+    name: Chemin mur YouTube (local HA)
+    icon: mdi:television
+    max: 160
+    initial: "/local/mural-youtube-embed.html"
+
+input_boolean:
+  mural_youtube_audio_bose:
+    name: Audio sur la Bose (Chromecast)
+    icon: mdi:speaker-wireless
+    initial: true
+
+rest_command:
+  rasp5_kiosk_navigate:
+    url: "http://192.168.1.56:8765/navigate"
+    method: POST
+    headers:
+      Authorization: !secret rasp5_kiosk_http_authorization
+      Content-Type: "application/json"
+    timeout: 45
+    payload: "{\"path\": \"{{ path }}\"}"
+
+script:
+  mural_afficher_youtube_lovelace:
+    alias: Mur — YouTube (vue Lovelace)
+    mode: single
+    icon: mdi:television-play
+    fields:
+      url:
+        description: URL YouTube (optionnel)
+    sequence:
+      - variables:
+          target_url: >-
+            {% set u = (url | default('') | trim) %}
+            {{ u if u else states('input_text.mural_youtube_url') | trim }}
+          youtube_id: >-
+            {% if 'youtu.be/' in target_url %}
+            {{ target_url.split('youtu.be/')[1].split('?')[0].split('/')[0] }}
+            {% elif 'v=' in target_url %}
+            {{ target_url.split('v=')[1].split('&')[0] }}
+            {% else %}
+            {{ '' }}
+            {% endif %}
+          embed_url: >-
+            {% if youtube_id | length >= 6 %}
+            https://www.youtube-nocookie.com/embed/{{ youtube_id }}?autoplay=1&rel=0
+            {% else %}
+            {{ '' }}
+            {% endif %}
+          url_ok: "{{ embed_url | length > 20 }}"
+          bose_audio: >-
+            {% set s = states('input_boolean.mural_youtube_audio_bose') %}
+            {{ s == 'on' if s not in ['unknown', 'unavailable'] else true }}
+          path_yt: >-
+            {{ states('input_text.mural_lovelace_path_youtube') | trim }}?v={{ youtube_id }}
+      - if:
+          - condition: template
+            value_template: "{{ not url_ok }}"
+        then:
+          - action: persistent_notification.create
+            data:
+              title: Mur — YouTube
+              message: "URL incomplète (v=… ou youtu.be/…)."
+              notification_id: mural_youtube_url_invalide
+          - stop: "URL invalide"
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.mural_youtube_embed
+        data:
+          value: "{{ embed_url }}"
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.mural_youtube_url
+        data:
+          value: "{{ target_url }}"
+      - action: rest_command.rasp5_kiosk_navigate
+        data:
+          path: "{{ path_yt }}"
+        continue_on_error: true
+      - if:
+          - condition: template
+            value_template: "{{ bose_audio and youtube_id | length >= 6 }}"
+        then:
+          - action: switch.turn_on
+            target:
+              entity_id: switch.multiprise_musique_bose
+            continue_on_error: true
+          - action: media_player.volume_set
+            target:
+              entity_id: media_player.musique_bose_2
+            data:
+              volume_level: 0.45
+            continue_on_error: true
+          - action: media_player.play_media
+            target:
+              entity_id: media_player.musique_bose_2
+            data:
+              media_content_id: "{{ youtube_id }}"
+              media_content_type: youtube
+            continue_on_error: true
+
+  mural_retour_accueil_lovelace:
+    alias: Mur — Retour accueil Lovelace
+    mode: single
+    icon: mdi:home-assistant
+    sequence:
+      - action: rest_command.rasp5_kiosk_navigate
+        data:
+          path: "{{ states('input_text.mural_lovelace_path_home') | trim }}"
+        continue_on_error: true
+      - action: media_player.media_pause
+        target:
+          entity_id: media_player.musique_bose_2
+        continue_on_error: true

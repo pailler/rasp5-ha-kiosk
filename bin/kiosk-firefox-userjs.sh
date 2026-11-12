@@ -47,13 +47,12 @@ lines = [
     'user_pref("browser.tabs.loadInBackground", false);',
     'user_pref("browser.tabs.loadDivertedInBackground", false);',
     'user_pref("browser.tabs.focusOccludedInParent", false);',
+    # Jamais de homepage : sinon Firefox rouvre le dashboard au lieu de l’URL CLI (YouTube).
+    'user_pref("browser.startup.page", 0);',
+    'user_pref("browser.sessionstore.max_tabs_undo", 0);',
 ]
 if start_url:
-    esc = start_url.replace("\\", "\\\\").replace('"', '\\"')
-    lines.append(f'user_pref("browser.startup.page", 1);')
-    lines.append(f'user_pref("browser.startup.homepage", "{esc}");')
-    lines.append('user_pref("startup.homepage_welcome_url", "");')
-    lines.append('user_pref("startup.homepage_welcome_url.additional", "");')
+    _ = start_url  # URL uniquement sur la ligne de commande firefox, pas en user_pref homepage.
 
 (profile / "user.js").write_text("\n".join(lines) + "\n", encoding="utf-8")
 

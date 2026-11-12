@@ -114,21 +114,47 @@ class KioskHandler(BaseHTTPRequestHandler):
             nav_env.setdefault("DISPLAY", ":0")
             nav_env.setdefault("WAYLAND_DISPLAY", "wayland-1")
             nav_env.setdefault("XAUTHORITY", os.path.expanduser("~/.Xauthority"))
+            lock_path = "/tmp/kiosk-navigate.lock"
             try:
-                subprocess.run(
-                    [
-                        "/bin/bash",
-                        "-lc",
-                        f". '{SESSION_ENV}' && export DISPLAY=:0 XAUTHORITY=$HOME/.Xauthority && "
-                        f"exec '{NAVIGATE_SCRIPT}' {json.dumps(rel)}",
-                    ],
-                    check=True,
-                    timeout=45,
+                import fcntl
+
+                lock_fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o644)
+                fcntl.flock(lock_fd, fcntl.LOCK_EX)
+            except OSError:
+                lock_fd = None
+
+            cmd = (
+                f". '{SESSION_ENV}' && export DISPLAY=:0 WAYLAND_DISPLAY=wayland-1 "
+                f"XAUTHORITY=$HOME/.Xauthority && exec '{NAVIGATE_SCRIPT}' {json.dumps(rel)}"
+            )
+            try:
+                proc = subprocess.Popen(
+                    ["/bin/bash", "-lc", cmd],
                     env=nav_env,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.PIPE,
+                    start_new_session=True,
                 )
-            except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
-                self._json(502, {"error": "navigate_failed", "detail": str(e)})
-                return
+                try:
+                    _, err = proc.communicate(timeout=120)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                    self._json(504, {"error": "navigate_timeout"})
+                    return
+                if proc.returncode != 0:
+                    detail = (err or b"").decode("utf-8", errors="replace")[-400:]
+                    self._json(
+                        502,
+                        {"error": "navigate_failed", "code": proc.returncode, "detail": detail},
+                    )
+                    return
+            finally:
+                if lock_fd is not None:
+                    try:
+                        fcntl.flock(lock_fd, fcntl.LOCK_UN)
+                        os.close(lock_fd)
+                    except OSError:
+                        pass
             self._json(200, {"ok": True, "path": rel})
             return
 

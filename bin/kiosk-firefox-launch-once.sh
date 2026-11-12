@@ -17,5 +17,6 @@ if "${HOME}/bin/kiosk-firefox-kiosk-running.sh"; then
 fi
 
 echo "firefox-launch-once: $* $(date)" >>"$LOG"
-nohup /usr/bin/firefox-esr "$@" </dev/null >>"$LOG" 2>&1 &
+[ "$#" -lt 1 ] && exit 1
+nohup "$@" </dev/null >>"$LOG" 2>&1 &
 disown -a 2>/dev/null || true

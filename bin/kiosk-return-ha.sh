@@ -30,10 +30,11 @@ else
 fi
 
 pkill -x chromium 2>/dev/null || true
-pkill -f 'firefox-esr.*kiosk-profile' 2>/dev/null || true
+pkill -9 -f 'firefox-esr.*kiosk-profile' 2>/dev/null || pkill -9 -x firefox-esr 2>/dev/null || true
 sleep 2
 pgrep -x firefox-esr >/dev/null 2>&1 && pkill -9 -x firefox-esr 2>/dev/null || true
 sleep 1
+"${HOME}/bin/kiosk-prune-extra-firefox.sh" 2>/dev/null || true
 pactl set-sink-mute @DEFAULT_SINK@ 0 2>/dev/null || true
 
 url=""

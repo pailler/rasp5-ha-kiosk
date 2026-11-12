@@ -15,7 +15,7 @@ export WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-1}"
 KIOSK_YOUTUBE_USE_CHROMIUM="${KIOSK_YOUTUBE_USE_CHROMIUM:-1}"
 is_youtube=0
 case "$url" in
-  *youtube.com*|*youtu.be*|*mural-youtube-embed*|*youtube-nocookie*|file://*/kiosk-youtube-page.html*)
+  *youtube.com*|*youtu.be*|*mural-youtube-embed*|*youtube-nocookie*|file://*/kiosk-youtube-page.html*|*m.youtube.com*)
     is_youtube=1
     ;;
   */youtube?*|*/youtube\?*)

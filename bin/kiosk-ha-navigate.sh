@@ -22,7 +22,7 @@ else
 fi
 
 if [[ "$PATH_REL" == *mural-youtube-embed.html* ]] || [[ "$target" == *mural-youtube-embed.html* ]]; then
-  yt_target="$(NAV_RAW="$PATH_REL" NAV_PORT="${KIOSK_HTTP_PORT:-8765}" python3 - <<'PY'
+  yt_target="$(NAV_RAW="$PATH_REL" HA_URL="$HA_BASE" python3 - <<'PY'
 import os, urllib.parse
 raw = os.environ.get("NAV_RAW", "")
 q = raw.split("?", 1)[1] if "?" in raw else ""
@@ -31,14 +31,14 @@ vid = (params.get("v") or [""])[0]
 if len(vid) < 6:
     raise SystemExit(1)
 mute = (params.get("mute") or [""])[0] in ("1", "true", "yes")
-port = os.environ.get("NAV_PORT", "8765")
-url = f"http://127.0.0.1:{port}/youtube?v={urllib.parse.quote(vid, safe='')}"
+ha = os.environ.get("HA_URL", "http://192.168.1.51:8123").rstrip("/")
+url = f"{ha}/local/mural-youtube-embed.html?v={urllib.parse.quote(vid, safe='')}"
 if mute:
     url += "&mute=1"
 print(url)
 PY
 )" && target="$yt_target"
-  echo "navigate: embed → page Pi /youtube $(date)" >>"$LOG"
+  echo "navigate: embed → HA /local $(date)" >>"$LOG"
 fi
 if [[ "$PATH_REL" == /lovelace/* ]]; then
   if "${HOME}/bin/kiosk-return-ha.sh" "$PATH_REL"; then

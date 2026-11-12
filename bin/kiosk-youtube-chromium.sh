@@ -45,10 +45,18 @@ else
 embed_qs="autoplay=1&playsinline=1&rel=0&modestbranding=1&fs=1"
 [ "$mute" -eq 1 ] && embed_qs="${embed_qs}&mute=1"
 
-if [ "$mode" = "embed-page" ]; then
+if [ "$mode" = "ha-embed" ]; then
+  HA_BASE="${HA_URL:-http://192.168.1.51:8123}"
+  HA_BASE="${HA_BASE%/}"
+  page="${HA_BASE}/local/mural-youtube-embed.html?v=${vid}"
+  [ "$mute" -eq 1 ] && page="${page}&mute=1"
+elif [ "$mode" = "embed-page" ]; then
   port="${KIOSK_HTTP_PORT:-8765}"
   host="${KIOSK_YOUTUBE_ORIGIN_HOST:-127.0.0.1}"
   page="http://${host}:${port}/youtube?v=${vid}"
+  [ "$mute" -eq 1 ] && page="${page}&mute=1"
+elif [ "$mode" = "mobile" ]; then
+  page="https://m.youtube.com/watch?v=${vid}&autoplay=1"
   [ "$mute" -eq 1 ] && page="${page}&mute=1"
 elif [ "$mode" = "watch" ]; then
   page="https://www.youtube.com/watch?v=${vid}&autoplay=1"

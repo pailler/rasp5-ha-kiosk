@@ -82,16 +82,6 @@ focus_ha_tab() {
   }
 }
 
-ensure_wayland_maximize_once() {
-  # Maximise sous Wayfire (pas F11 : le plein écran navigateur casse pinch/zoom tactile).
-  (
-    sleep 18
-    firefox_focus_window 2>/dev/null || true
-    sleep 0.5
-    command -v wtype >/dev/null 2>&1 || exit 0
-    wtype -M super -k Up 2>/dev/null || wtype -M logo -k Up 2>/dev/null || true
-  ) &
-}
 
 wait_for_network() {
   local n=0
@@ -158,23 +148,25 @@ pkill -x onboard 2>/dev/null || true
 
 echo "=== ha-kiosk-legacy $(date) wayland=$KIOSK_FIREFOX_WAYLAND === URL=$URL" >>"$LOG"
 
-FF_CMD=(/usr/bin/firefox-esr --no-remote --profile "$PROFILE" --start-maximized)
 FULLSCREEN_MODE="${KIOSK_FULLSCREEN:-fullscreen}"
+USE_KIOSK_FLAG=0
+if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ] && [ -z "$SECOND_URL" ] \
+  && [ "$FULLSCREEN_MODE" != "f11" ]; then
+  USE_KIOSK_FLAG=1
+fi
+
+if [ "$USE_KIOSK_FLAG" = "1" ]; then
+  FF_CMD=(/usr/bin/firefox-esr --no-remote --profile "$PROFILE" --kiosk)
+  echo "lancement Firefox --kiosk (1 onglet HA)" >>"$LOG"
+else
+  FF_CMD=(/usr/bin/firefox-esr --no-remote --profile "$PROFILE" --start-maximized)
+fi
 
 "${FF_CMD[@]}" "$URL" &
-if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ]; then
-  case "$FULLSCREEN_MODE" in
-    f11)
-      (
-        sleep 20
-        firefox_focus_window 2>/dev/null || true
-        command -v wtype >/dev/null 2>&1 && wtype -k F11 2>/dev/null || true
-      ) &
-      ;;
-    maximize|fullscreen|*)
-      ensure_wayland_maximize_once
-      ;;
-  esac
+if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ] && [ "$USE_KIOSK_FLAG" != "1" ]; then
+  "${HOME}/bin/kiosk-apply-fullscreen.sh" 2>/dev/null || true
+elif [ "$USE_KIOSK_FLAG" != "1" ] && [ "$FULLSCREEN_MODE" = "f11" ]; then
+  "${HOME}/bin/kiosk-apply-fullscreen.sh" 2>/dev/null || true
 fi
 
 sleep 22

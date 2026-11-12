@@ -82,6 +82,7 @@ fi
 done
 if "${HOME}/bin/kiosk-browser-active.sh"; then
   pgrep -af "firefox-esr|chromium.*8123" | head -3
+  "${HOME}/bin/kiosk-apply-fullscreen.sh" 2>/dev/null || true
 else
   echo "échec final kiosque"
 fi

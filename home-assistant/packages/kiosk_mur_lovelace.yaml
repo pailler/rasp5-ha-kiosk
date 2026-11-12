@@ -1,7 +1,13 @@
-# Mur Pi — Lovelace (1 onglet). Conserver input_text.mural_youtube_url / mural_youtube_audio_bose (ancien package ou déjà créés).
-# Désactiver packages/kiosk_youtube_onglet2.yaml → renommer en .yaml.disabled
+# Mur Pi — Lovelace (1 onglet). packages/kiosk_youtube_onglet2.yaml doit rester .disabled
+# L’alias mural_lancer_youtube_onglet2 évite les boutons / automations encore sur l’ancien id.
 
 input_text:
+  mural_youtube_url:
+    name: YouTube (écran mural)
+    icon: mdi:youtube
+    max: 255
+    initial: ""
+    mode: text
   mural_youtube_embed:
     name: URL embed YouTube (mur)
     icon: mdi:youtube-subscription
@@ -18,7 +24,35 @@ input_text:
     max: 160
     initial: "/local/mural-youtube-embed.html"
 
+input_boolean:
+  mural_youtube_audio_bose:
+    name: Audio sur la Bose (Chromecast)
+    icon: mdi:speaker-wireless
+    initial: true
+
+input_select:
+  mural_bose_media_player:
+    name: Lecteur Bose (mur YouTube)
+    icon: mdi:speaker
+    options:
+      - media_player.musique_bose_4
+      - media_player.musique_bose_2
+      - media_player.musique_bose
+    initial: media_player.musique_bose_4
+
 script:
+  mural_lancer_youtube_onglet2:
+    alias: Mur — YouTube onglet 2 (alias → Lovelace)
+    mode: single
+    icon: mdi:television-play
+    fields:
+      url:
+        description: URL YouTube (optionnel)
+    sequence:
+      - action: script.mural_afficher_youtube_lovelace
+        data:
+          url: "{{ url | default('') }}"
+
   mural_afficher_youtube_lovelace:
     alias: Mur — YouTube (vue Lovelace)
     mode: single
@@ -49,6 +83,10 @@ script:
           bose_audio: >-
             {% set s = states('input_boolean.mural_youtube_audio_bose') %}
             {{ s == 'on' if s not in ['unknown', 'unavailable'] else true }}
+          bose_player: >-
+            {{ states('input_select.mural_bose_media_player')
+               | default('media_player.musique_bose_4', true) | trim }}
+          navigate_mute: "{{ 1 if bose_audio else 0 }}"
           navigate_url: >-
             https://www.youtube.com/watch?v={{ youtube_id }}{% if bose_audio %}&mute=1{% endif %}
           navigate_embed_url: >-
@@ -90,30 +128,51 @@ script:
             continue_on_error: true
           - delay:
               seconds: 8
-          - action: media_player.turn_on
-            target:
-              entity_id: media_player.musique_bose_2
-            continue_on_error: true
-          - action: media_player.volume_set
-            target:
-              entity_id: media_player.musique_bose_2
-            data:
-              volume_level: 0.5
-            continue_on_error: true
-          - action: media_player.play_media
-            target:
-              entity_id: media_player.musique_bose_2
-            data:
-              media_content_id: "https://www.youtube.com/watch?v={{ youtube_id }}"
-              media_content_type: cast
-            continue_on_error: true
-          - action: media_player.play_media
-            target:
-              entity_id: media_player.musique_bose_2
-            data:
-              media_content_id: "{{ youtube_id }}"
-              media_content_type: youtube
-            continue_on_error: true
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ 'musique_bose_4' in bose_player }}"
+                sequence:
+                  - action: music_assistant.play_media
+                    data:
+                      entity_id: "{{ bose_player }}"
+                      media_id: "{{ target_url }}"
+                    continue_on_error: true
+              - conditions:
+                  - condition: template
+                    value_template: "{{ 'musique_bose_2' in bose_player }}"
+                sequence:
+                  - action: media_player.turn_on
+                    target:
+                      entity_id: "{{ bose_player }}"
+                    continue_on_error: true
+                  - action: media_player.volume_set
+                    target:
+                      entity_id: "{{ bose_player }}"
+                    data:
+                      volume_level: 0.5
+                    continue_on_error: true
+                  - action: media_player.play_media
+                    target:
+                      entity_id: "{{ bose_player }}"
+                    data:
+                      media_content_id: "{{ youtube_id }}"
+                      media_content_type: youtube
+                    continue_on_error: true
+            default:
+              - action: media_player.volume_set
+                target:
+                  entity_id: "{{ bose_player }}"
+                data:
+                  volume_level: 0.45
+                continue_on_error: true
+              - action: media_player.play_media
+                target:
+                  entity_id: "{{ bose_player }}"
+                data:
+                  media_content_id: "{{ target_url }}"
+                  media_content_type: music
+                continue_on_error: true
 
   mural_retour_accueil_lovelace:
     alias: Mur — Retour accueil Lovelace
@@ -126,5 +185,7 @@ script:
         continue_on_error: true
       - action: media_player.media_pause
         target:
-          entity_id: media_player.musique_bose_2
+          entity_id: >-
+            {{ states('input_select.mural_bose_media_player')
+               | default('media_player.musique_bose_4', true) | trim }}
         continue_on_error: true

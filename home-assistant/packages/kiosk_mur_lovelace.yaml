@@ -40,6 +40,106 @@ input_select:
       - media_player.musique_bose
     initial: media_player.musique_bose_2
 
+input_number:
+  mural_pi_hdmi_volume:
+    name: Mur réglage volume Pi HDMI
+    icon: mdi:television-speaker
+    min: 0
+    max: 100
+    step: 5
+    unit_of_measurement: "%"
+    mode: slider
+    initial: 50
+  mural_bose_volume:
+    name: Mur réglage volume Bose
+    icon: mdi:speaker-wireless
+    min: 0
+    max: 100
+    step: 5
+    unit_of_measurement: "%"
+    mode: slider
+    initial: 55
+
+rest:
+  - resource: "http://192.168.1.56:8765/audio"
+    method: GET
+    scan_interval: 20
+    timeout: 10
+    headers:
+      Authorization: !secret rasp5_kiosk_http_authorization
+    sensor:
+      - name: "Mural Pi HDMI volume"
+        unique_id: mural_pi_hdmi_volume_sensor
+        value_template: "{{ value_json.volume_percent | default(0) | int }}"
+        unit_of_measurement: "%"
+        icon: mdi:television-speaker
+        json_attributes:
+          - muted
+          - ok
+
+template:
+  - sensor:
+      - name: "Mural Bose volume"
+        unique_id: mural_bose_volume_sensor
+        unit_of_measurement: "%"
+        icon: mdi:speaker-wireless
+        state: >-
+          {% set p = states('input_select.mural_bose_media_player')
+             | default('media_player.musique_bose_2', true) | trim %}
+          {% set v = state_attr(p, 'volume_level') %}
+          {% if v is number %}
+            {{ (v * 100) | round(0) }}
+          {% else %}
+            unknown
+          {% endif %}
+
+automation:
+  - id: mural_appliquer_volume_pi_hdmi
+    alias: Mur — régler volume HDMI Pi
+    mode: queued
+    trigger:
+      - platform: state
+        entity_id: input_number.mural_pi_hdmi_volume
+    condition:
+      - condition: template
+        value_template: >-
+          {{ trigger.from_state is not none
+             and (trigger.to_state.state | float(0)
+                  - trigger.from_state.state | float(0)) | abs > 0.01 }}
+    action:
+      - action: rest_command.rasp5_kiosk_set_pi_volume
+        data:
+          volume_percent: "{{ states('input_number.mural_pi_hdmi_volume') | int }}"
+
+  - id: mural_appliquer_volume_bose
+    alias: Mur — régler volume Bose
+    mode: queued
+    trigger:
+      - platform: state
+        entity_id: input_number.mural_bose_volume
+    condition:
+      - condition: template
+        value_template: >-
+          {{ trigger.from_state is not none
+             and (trigger.to_state.state | float(0)
+                  - trigger.from_state.state | float(0)) | abs > 0.01 }}
+    action:
+      - action: media_player.volume_set
+        target:
+          entity_id: >-
+            {{ states('input_select.mural_bose_media_player')
+               | default('media_player.musique_bose_2', true) | trim }}
+        data:
+          volume_level: >-
+            {{ (states('input_number.mural_bose_volume') | float(55) / 100) | round(2) }}
+      - action: media_player.volume_mute
+        target:
+          entity_id: >-
+            {{ states('input_select.mural_bose_media_player')
+               | default('media_player.musique_bose_2', true) | trim }}
+        data:
+          is_volume_muted: false
+
 script:
   mural_lancer_youtube_onglet2:
     alias: Mur — YouTube onglet 2 (alias → Lovelace)
@@ -155,7 +255,8 @@ script:
                             target:
                               entity_id: media_player.musique_bose_2
                             data:
-                              volume_level: 0.55
+                              volume_level: >-
+                                {{ (states('input_number.mural_bose_volume') | float(55) / 100) | round(2) }}
                             continue_on_error: true
                           - action: media_player.volume_mute
                             target:

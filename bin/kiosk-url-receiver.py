@@ -16,7 +16,43 @@ TOKEN_PATH = os.path.expanduser("~/.config/kiosk-http-token")
 OPEN_SCRIPT = os.path.expanduser("~/bin/kiosk-open-tab2-url.sh")
 NAVIGATE_SCRIPT = os.path.expanduser("~/bin/kiosk-ha-navigate.sh")
 SESSION_ENV = os.path.expanduser("~/bin/kiosk-session-env.sh")
+_AUDIO_SCRIPT = os.path.expanduser("~/bin/kiosk-audio-status.py")
 _LAST_TAB2: tuple[str, float] = ("", 0.0)
+
+
+def _audio_json() -> dict:
+    if os.path.isfile(_AUDIO_SCRIPT):
+        try:
+            out = subprocess.check_output(
+                ["python3", _AUDIO_SCRIPT],
+                text=True,
+                timeout=6,
+            ).strip()
+            data = json.loads(out)
+            if isinstance(data, dict):
+                return data
+        except (subprocess.SubprocessError, json.JSONDecodeError, OSError):
+            pass
+    return {"ok": False, "volume_percent": 0, "muted": True}
+
+
+def _audio_apply(body: dict) -> dict:
+    if not os.path.isfile(_AUDIO_SCRIPT):
+        return {"ok": False, "error": "audio_script_missing"}
+    if "muted" in body:
+        muted = body["muted"] in (True, "true", "1", 1, "on", "yes")
+        cmd = ["python3", _AUDIO_SCRIPT, "mute", "1" if muted else "0"]
+    elif "volume_percent" in body or "volume" in body:
+        raw = body.get("volume_percent", body.get("volume", 0))
+        cmd = ["python3", _AUDIO_SCRIPT, "set", str(raw)]
+    else:
+        return {"ok": False, "error": "missing_volume_or_muted"}
+    try:
+        out = subprocess.check_output(cmd, text=True, timeout=8).strip()
+        data = json.loads(out)
+        return data if isinstance(data, dict) else _audio_json()
+    except (subprocess.SubprocessError, json.JSONDecodeError, OSError) as e:
+        return {"ok": False, "error": str(e)}
 
 
 def load_token() -> str:
@@ -126,6 +162,13 @@ class KioskHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
+        if parsed.path.rstrip("/") == "/audio":
+            token = load_token()
+            if token and not authorized(self, token):
+                self._json(401, {"error": "unauthorized"})
+                return
+            self._json(200, _audio_json())
+            return
         self._json(404, {"error": "not_found"})
 
     def do_POST(self) -> None:
@@ -135,6 +178,19 @@ class KioskHandler(BaseHTTPRequestHandler):
             return
 
         path = self.path.rstrip("/") or "/"
+
+        if path == "/audio":
+            length = int(self.headers.get("Content-Length", "0"))
+            raw = self.rfile.read(length) if length else b"{}"
+            try:
+                data = json.loads(raw.decode("utf-8"))
+            except json.JSONDecodeError:
+                self._json(400, {"error": "invalid_json"})
+                return
+            result = _audio_apply(data)
+            code = 200 if result.get("ok") else 502
+            self._json(code, result)
+            return
 
         if path == "/navigate":
             length = int(self.headers.get("Content-Length", "0"))

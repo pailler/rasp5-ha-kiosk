@@ -1,0 +1,35 @@
+rasp5_kiosk_youtube_tab2:
+  url: "http://192.168.1.56:8765/tab2"
+  timeout: 120
+  method: POST
+  headers:
+    Authorization: !secret rasp5_kiosk_http_authorization
+    Content-Type: "application/json"
+  payload: >-
+    {"url": "{{ url }}", "mute_local": {% if mute_local is defined and mute_local in [true, 'true', 'True', 'on', 'yes', 1, 1.0] %}true{% else %}false{% endif %}}
+
+rasp5_kiosk_focus_ha_tab1:
+  url: "http://192.168.1.56:8765/tab1"
+  method: POST
+  headers:
+    Authorization: !secret rasp5_kiosk_http_authorization
+    Content-Type: "application/json"
+  payload: "{}"
+
+rasp5_kiosk_navigate:
+  url: "http://192.168.1.56:8765/navigate"
+  method: POST
+  timeout: 130
+  headers:
+    Authorization: !secret rasp5_kiosk_http_authorization
+    Content-Type: "application/json"
+  payload: '{"url": {{ url | default(path, true) | tojson }}}'
+
+rasp5_kiosk_set_pi_volume:
+  url: "http://192.168.1.56:8765/audio"
+  method: POST
+  timeout: 15
+  headers:
+    Authorization: !secret rasp5_kiosk_http_authorization
+    Content-Type: "application/json"
+  payload: '{"volume_percent": {{ volume_percent | int }} }'

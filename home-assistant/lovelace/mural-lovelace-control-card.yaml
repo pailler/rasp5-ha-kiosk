@@ -13,6 +13,18 @@ cards:
   - type: entity
     entity: input_select.mural_bose_media_player
     name: Lecteur Bose
+  - type: entities
+    title: Niveaux son
+    show_header_toggle: false
+    entities:
+      - entity: sensor.mural_pi_hdmi_volume
+        name: Pi HDMI
+      - entity: input_number.mural_pi_hdmi_volume
+        name: Régler Pi
+      - entity: sensor.mural_bose_volume
+        name: Bose
+      - entity: input_number.mural_bose_volume
+        name: Régler Bose
   - type: horizontal-stack
     cards:
       - type: button

@@ -6,14 +6,16 @@ LOG="${HOME}/kiosk.log"
 
 LOCK=/tmp/kiosk-firefox-launch.lock
 exec 6>"$LOCK"
-flock -n 6 || exit 0
+if ! flock -n 6; then
+  echo "firefox-launch-once: verrou actif — autre lancement $(date)" >>"$LOG"
+  exit 0
+fi
 
 if "${HOME}/bin/kiosk-firefox-kiosk-running.sh"; then
   "${HOME}/bin/kiosk-prune-extra-firefox.sh" || true
   exit 0
 fi
 
-shift_args=("$@")
 echo "firefox-launch-once: $* $(date)" >>"$LOG"
 nohup /usr/bin/firefox-esr "$@" </dev/null >>"$LOG" 2>&1 &
 disown -a 2>/dev/null || true

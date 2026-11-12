@@ -208,7 +208,16 @@ case "$FULLSCREEN_MODE" in
 esac
 
 "${HOME}/bin/kiosk-prune-extra-firefox.sh" 2>/dev/null || true
-"${HOME}/bin/kiosk-firefox-launch-once.sh" "${FF_CMD[@]}" "$URL"
+if [ -x "${HOME}/bin/kiosk-firefox-launch-once.sh" ]; then
+  "${HOME}/bin/kiosk-firefox-launch-once.sh" "${FF_CMD[@]}" "$URL" || true
+else
+  nohup "${FF_CMD[@]}" "$URL" </dev/null >>"$LOG" 2>&1 &
+fi
+if ! wait_firefox_ready; then
+  echo "repli lancement Firefox direct $(date)" >>"$LOG"
+  nohup "${FF_CMD[@]}" "$URL" </dev/null >>"$LOG" 2>&1 &
+  sleep 6
+fi
 if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ] && [ "$FULLSCREEN_MODE" != "0" ] && [ "$FULLSCREEN_MODE" != "kiosk" ]; then
   "${HOME}/bin/kiosk-apply-fullscreen.sh" 2>/dev/null || true
 fi

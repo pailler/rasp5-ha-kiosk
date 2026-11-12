@@ -1,3 +1,3 @@
 #!/bin/bash
-# True si une instance Firefox utilise le profil kiosque (--no-remote).
-pgrep -af 'firefox-esr.*kiosk-profile' 2>/dev/null | grep -q .
+# True seulement si le processus principal kiosque tourne (--no-remote).
+pgrep -af 'firefox-esr.*kiosk-profile.*--no-remote' 2>/dev/null | grep -q .

@@ -63,6 +63,8 @@ generate_ha_url() {
 }
 
 URL="$(generate_ha_url)"
+mkdir -p "${HOME}/.cache"
+printf '%s\n' "$URL" >"${HOME}/.cache/kiosk-last-ha-url"
 
 PROFILE="${HOME}/.mozilla/kiosk-profile"
 mkdir -p "$PROFILE"
@@ -152,10 +154,10 @@ ensure_youtube_tab_slot() {
 }
 
 if "${HOME}/bin/kiosk-firefox-kiosk-running.sh"; then
-  echo "Firefox kiosque déjà actif — pas de kill / pas de 2e lancement $(date)" >>"$LOG"
-  ensure_youtube_tab_slot
+  echo "Firefox kiosque déjà actif — focus HA $(date)" >>"$LOG"
   [ -n "$SECOND_URL" ] && load_second_tab_url "$SECOND_URL"
   focus_ha_tab
+  "${HOME}/bin/kiosk-nudge-ha.sh" 2>/dev/null || true
   exit 0
 fi
 
@@ -218,10 +220,6 @@ if ! wait_firefox_ready; then
   nohup "${FF_CMD[@]}" "$URL" </dev/null >>"$LOG" 2>&1 &
   sleep 6
 fi
-if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ] && [ "$FULLSCREEN_MODE" != "0" ] && [ "$FULLSCREEN_MODE" != "kiosk" ]; then
-  "${HOME}/bin/kiosk-apply-fullscreen.sh" 2>/dev/null || true
-fi
-
 sleep 8
 pgrep -f hide-desktop-loop >/dev/null || "${HOME}/bin/hide-desktop-loop.sh" &
 
@@ -231,74 +229,15 @@ if [ -n "$SECOND_URL" ]; then
   load_second_tab_url "$SECOND_URL"
   echo "2e onglet (arrière-plan): $SECOND_URL" >>"$LOG"
 else
-  ensure_youtube_tab_slot
-  echo "2e onglet réservé YouTube (about:blank)" >>"$LOG"
+  echo "boot: 1 seul onglet HA (onglet 2 à la demande YouTube)" >>"$LOG"
 fi
 
 focus_ha_tab
 "${HOME}/bin/kiosk-prune-extra-firefox.sh" 2>/dev/null || true
-
-if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ]; then
-  if [ "$FULLSCREEN_MODE" = "f11" ]; then
-    i=0
-    while [ "$i" -lt 12 ]; do
-      sleep 2
-      pgrep -x firefox-esr >/dev/null || break
-      command -v wtype >/dev/null 2>&1 && wtype -k F11 2>/dev/null || true
-      i=$((i + 1))
-    done
-    echo "plein écran F11 (Wayland) $(date)" >>"$LOG"
-  fi
-  for _pass in 1 2 3; do
-    sleep 3
-    pgrep -x firefox-esr >/dev/null || break
-    "${HOME}/bin/kiosk-focus-firefox-window.sh" 2>/dev/null || true
-    focus_ha_tab
-    "${HOME}/bin/kiosk-apply-fullscreen.sh" 2>/dev/null || true
-  done
-  pgrep -af "firefox-esr.*kiosk-profile" | head -1 >>"$LOG"
-  exit 0
-fi
-
-pgrep -f firefox-geometry-guard >/dev/null || "${HOME}/bin/firefox-geometry-guard.sh" &
-
-find_ha_window() {
-  local wid name
-  for wid in $(xdotool search --class firefox 2>/dev/null); do
-    name=$(xdotool getwindowname "$wid" 2>/dev/null)
-    echo "$name" | grep -qiE 'home assistant|ecranmural|météo|meteo|mozilla firefox' && echo "$wid" && return 0
-  done
-  return 1
-}
-
-WID=""
-for _ in $(seq 1 25); do
-  WID=$(find_ha_window || true)
-  [ -n "$WID" ] && break
-  sleep 2
-done
-if [ -z "$WID" ]; then
-  echo "fenêtre HA non trouvée (X11) — Firefox laissé ouvert $(date)" >>"$LOG"
-  exit 0
-fi
-
-for _ in 1 2 3 4 5; do
-  xdotool windowmove --sync "$WID" 0 0 2>/dev/null || true
-  xdotool windowsize --sync "$WID" "$W" "$H" 2>/dev/null || true
-  if [ "$FULLSCREEN_MODE" = "f11" ]; then
-    xdotool key --window "$WID" F11 2>/dev/null || true
-  fi
-  if [ "$FULLSCREEN_MODE" = "kiosk" ]; then
-    break
-  fi
-  sleep 2
-  eval "$(xdotool getwindowgeometry --shell "$WID" 2>/dev/null)"
-  [ "${WIDTH:-0}" -ge "$((W - 20))" ] && [ "${HEIGHT:-0}" -ge "$((H - 20))" ] && break
-done
-xdotool windowactivate --sync "$WID" 2>/dev/null || true
-if [ -n "$SECOND_URL" ]; then
-  focus_ha_tab
-fi
-
-pgrep -af "firefox-esr.*8123" | head -1 >>"$LOG"
+"${HOME}/bin/kiosk-apply-fullscreen.sh" 2>/dev/null || true
+(
+  sleep 50
+  "${HOME}/bin/kiosk-nudge-ha.sh" 2>/dev/null || true
+) &
+pgrep -af "firefox-esr.*kiosk-profile.*--no-remote" | head -1 >>"$LOG"
 exit 0

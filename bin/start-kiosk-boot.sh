@@ -72,8 +72,8 @@ for _ in $(seq 1 60); do
     touch "$STAMP"
     "${HOME}/bin/kiosk-apply-fullscreen.sh" 2>/dev/null || true
     (
-      sleep 90
-      "${HOME}/bin/kiosk-recover-display.sh" || true
+      sleep 120
+      pgrep -x firefox-esr >/dev/null && "${HOME}/bin/kiosk-nudge-ha.sh" || "${HOME}/bin/kiosk-recover-display.sh"
     ) &
     exit 0
   fi

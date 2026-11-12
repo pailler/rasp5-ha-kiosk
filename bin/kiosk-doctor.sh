@@ -11,6 +11,7 @@ need=(
   kiosk-wait-firefox-remote.sh
   ha-kiosk-legacy.sh
   kiosk-fix-duplicate-boot.sh
+  kiosk-nudge-ha.sh
 )
 missing=0
 for f in "${need[@]}"; do

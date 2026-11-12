@@ -1,5 +1,5 @@
 #!/bin/bash
-# Renforce le plein écran après boot (Wayfire ou mode --kiosk déjà actif).
+# Plein écran une seule fois (pas de boucle wtype / -remote).
 set -euo pipefail
 . "$(dirname "$0")/kiosk-session-env.sh"
 CONF="${HOME}/.config/ha-kiosk.env"
@@ -8,57 +8,29 @@ export DISPLAY="${DISPLAY:-:0}"
 export WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-1}"
 
 MODE="${KIOSK_FULLSCREEN:-fullscreen}"
-[ "${KIOSK_FIREFOX_WAYLAND:-1}" != "1" ] && exit 0
 [ "$MODE" = "kiosk" ] && exit 0
 LOG="${HOME}/kiosk.log"
 
+LOCK=/tmp/kiosk-apply-fullscreen.lock
+exec 5>"$LOCK"
+flock -n 5 || exit 0
+
 "${HOME}/bin/kiosk-wayfire-window-rules.sh" 2>/dev/null || true
 
-firefox_focus_window() {
-  local wid best="" area=0 w h a name
-  for wid in $(xdotool search --class firefox 2>/dev/null); do
-    name=$(xdotool getwindowname "$wid" 2>/dev/null)
-    eval "$(xdotool getwindowgeometry --shell "$wid" 2>/dev/null)"
-    w=${WIDTH:-0}; h=${HEIGHT:-0}; a=$((w * h))
-    echo "$name" | grep -qiE 'firefox|assistant|iahome|chargement' || continue
-    [ "$a" -gt "$area" ] && area=$a && best=$wid
-  done
-  [ -n "$best" ] && xdotool windowactivate --sync "$best" 2>/dev/null
-}
-
-apply_maximize() {
-  # Wayland natif : les règles Wayfire gèrent le maximize ; wtype reste un filet XWayland.
-  firefox_focus_window 2>/dev/null || true
-  sleep 0.4
-  command -v wtype >/dev/null 2>&1 || return 0
-  wtype -M super -k Up 2>/dev/null || wtype -M logo -k Up 2>/dev/null || true
-}
-
-apply_f11() {
-  firefox_focus_window 2>/dev/null || true
-  sleep 0.4
-  command -v wtype >/dev/null 2>&1 && wtype -k F11 2>/dev/null || true
-}
-
 (
-  for wait_s in 8 20 25; do
-    sleep "$wait_s"
-    pgrep -x firefox-esr >/dev/null || continue
-    if pgrep -af 'firefox-esr.*--kiosk' >/dev/null 2>&1; then
-      echo "plein écran (--kiosk) déjà actif $(date)" >>"$LOG"
-      exit 0
-    fi
-    "${HOME}/bin/kiosk-focus-firefox-window.sh" 2>/dev/null || true
-    case "$MODE" in
-      f11)
-        apply_f11
-        echo "plein écran F11 (wtype) $(date)" >>"$LOG"
-        ;;
-      *)
-        apply_maximize
-        echo "plein écran Wayfire (règles + maximize) $(date)" >>"$LOG"
-        ;;
-    esac
-    "${HOME}/bin/kiosk-focus-tab.sh" 1 2>/dev/null || true
-  done
+  sleep 12
+  pgrep -x firefox-esr >/dev/null || exit 0
+  if pgrep -af 'firefox-esr.*--kiosk' >/dev/null 2>&1; then
+    echo "plein écran (--kiosk) déjà actif $(date)" >>"$LOG"
+    exit 0
+  fi
+  "${HOME}/bin/kiosk-focus-firefox-window.sh" 2>/dev/null || true
+  if [ "$MODE" = "f11" ] && command -v wtype >/dev/null 2>&1; then
+    wtype -k F11 2>/dev/null || true
+    echo "plein écran F11 (wtype) $(date)" >>"$LOG"
+  elif command -v wtype >/dev/null 2>&1; then
+    wtype -M super -k Up 2>/dev/null || wtype -M logo -k Up 2>/dev/null || true
+    echo "plein écran maximize (wtype) $(date)" >>"$LOG"
+  fi
+  "${HOME}/bin/kiosk-focus-tab.sh" 1 2>/dev/null || true
 ) &

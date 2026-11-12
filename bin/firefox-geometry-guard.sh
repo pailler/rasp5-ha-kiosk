@@ -4,7 +4,7 @@ flock -n 9 || exit 0
 . "$(dirname "$0")/kiosk-session-env.sh"
 CONF="${HOME}/.config/ha-kiosk.env"
 [ -r "$CONF" ] && . "$CONF"
-if [ "${KIOSK_FIREFOX_WAYLAND:-1}" = "1" ]; then
+if [ -n "${WAYLAND_DISPLAY:-}" ] || [ "${KIOSK_FIREFOX_WAYLAND:-1}" = "1" ]; then
   exec sleep infinity
 fi
 export DISPLAY="${DISPLAY:-:0}"

@@ -20,6 +20,25 @@ else
   PATH_REL="/${PATH_REL}"
   target="${HA_BASE}${PATH_REL}"
 fi
+
+if [[ "$PATH_REL" == *mural-youtube-embed.html* ]] || [[ "$target" == *mural-youtube-embed.html* ]]; then
+  yt_target="$(NAV_RAW="$PATH_REL" python3 - <<'PY'
+import os, urllib.parse
+raw = os.environ.get("NAV_RAW", "")
+q = raw.split("?", 1)[1] if "?" in raw else ""
+params = urllib.parse.parse_qs(q, keep_blank_values=True)
+vid = (params.get("v") or [""])[0]
+if len(vid) < 6:
+    raise SystemExit(1)
+mute = (params.get("mute") or [""])[0] in ("1", "true", "yes")
+url = f"https://www.youtube.com/watch?v={urllib.parse.quote(vid, safe='')}"
+if mute:
+    url += "&mute=1"
+print(url)
+PY
+)" && target="$yt_target"
+  echo "navigate: embed → YouTube direct $(date)" >>"$LOG"
+fi
 if [[ "$PATH_REL" == /lovelace/* ]]; then
   signed="$(KIOSK_USE_LEGACY_TOKEN=1 HA_URL="$HA_BASE" KIOSK_PATH="$PATH_REL" \
     python3 "${HOME}/bin/ha-kiosk-signed-url.py" 2>>"$LOG")" || signed=""

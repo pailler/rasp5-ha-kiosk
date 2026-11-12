@@ -13,6 +13,7 @@ fi
 
 if "${HOME}/bin/kiosk-firefox-kiosk-running.sh"; then
   "${HOME}/bin/kiosk-prune-extra-firefox.sh" || true
+  "${HOME}/bin/kiosk-ensure-ha-url.sh" 2>/dev/null || true
   exit 0
 fi
 

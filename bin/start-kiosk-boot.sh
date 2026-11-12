@@ -36,6 +36,7 @@ export DISPLAY="${DISPLAY:-:0}"
 if "${HOME}/bin/kiosk-browser-active.sh"; then
   echo "Firefox déjà actif"
   "${HOME}/bin/kiosk-prune-extra-firefox.sh" 2>/dev/null || true
+  "${HOME}/bin/kiosk-ensure-ha-url.sh" 2>/dev/null || true
   touch "$STAMP"
   exit 0
 fi
@@ -87,8 +88,12 @@ for _ in $(seq 1 90); do
   [ "$n" -ge 1 ] || { sleep 2; continue; }
   echo "kiosque OK (instances=${n})"
   touch "$STAMP"
-  "${HOME}/bin/kiosk-apply-fullscreen.sh" 2>/dev/null || true
-    exit 0
+  "${HOME}/bin/kiosk-ensure-ha-url.sh" 2>/dev/null || true
+  (
+    sleep 45
+    "${HOME}/bin/kiosk-ensure-ha-url.sh" 2>/dev/null || true
+  ) &
+  exit 0
 done
 
 echo "échec final kiosque (un seul lancement)"

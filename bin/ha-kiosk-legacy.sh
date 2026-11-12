@@ -154,7 +154,8 @@ ensure_youtube_tab_slot() {
 }
 
 if "${HOME}/bin/kiosk-firefox-kiosk-running.sh"; then
-  echo "Firefox kiosque déjà actif — focus HA $(date)" >>"$LOG"
+  echo "Firefox actif — charge URL HA si vide $(date)" >>"$LOG"
+  "${HOME}/bin/kiosk-ensure-ha-url.sh" 2>/dev/null || true
   [ -n "$SECOND_URL" ] && load_second_tab_url "$SECOND_URL"
   exit 0
 fi
@@ -219,6 +220,7 @@ if ! wait_firefox_ready; then
   sleep 6
 fi
 sleep 8
+"${HOME}/bin/kiosk-ensure-ha-url.sh" 2>/dev/null || true
 pgrep -f hide-desktop-loop >/dev/null || "${HOME}/bin/hide-desktop-loop.sh" &
 
 wait_firefox_ready || true

@@ -5,6 +5,7 @@ Wants=graphical-session.target
 
 [Service]
 Type=oneshot
+TimeoutStartSec=600
 ExecStartPre=/bin/sleep 25
 ExecStart=%h/bin/start-kiosk-boot.sh
 RemainAfterExit=yes

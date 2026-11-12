@@ -63,9 +63,6 @@ URL="$(generate_ha_url)"
 
 PROFILE="${HOME}/.mozilla/kiosk-profile"
 mkdir -p "$PROFILE"
-rm -f "$PROFILE"/sessionstore.json* "$PROFILE"/sessionCheckpoints.json "$PROFILE"/recovery.json 2>/dev/null || true
-rm -rf "$PROFILE"/sessionstore-backups 2>/dev/null || true
-mkdir -p "$PROFILE"/sessionstore-backups
 
 firefox_focus_window() {
   local wid best="" area=0 w h a name
@@ -115,23 +112,32 @@ wait_for_network() {
 }
 
 wait_firefox_ready() {
-  local i=0
-  while [ "$i" -lt 45 ]; do
-    if pgrep -x firefox-esr >/dev/null; then
-      sleep 4
-      return 0
-    fi
-    sleep 2
-    i=$((i + 1))
-  done
-  return 1
+  "${HOME}/bin/kiosk-wait-firefox-remote.sh" 45 2
 }
 
-open_second_tab_background() {
+load_second_tab_url() {
   local url="$1"
   [ -z "$url" ] && return 0
-  wait_firefox_ready || true
-  /usr/bin/firefox-esr --profile "$PROFILE" -remote "openURL(${url},new-background-tab)" 2>/dev/null || true
+  wait_firefox_ready || return 1
+  local js
+  js="$(python3 - "$url" <<'PY'
+import json, sys
+u = json.dumps(sys.argv[1])
+print(
+    "javascript:(function(){"
+    f"var u={u};"
+    "var w=Services.wm.getMostRecentBrowserWindow();if(!w||!w.gBrowser)return;"
+    "var g=w.gBrowser;"
+    "while(g.tabs.length<2)g.addTrustedTab('about:blank');"
+    "while(g.tabs.length>2)g.removeTab(g.tabs[g.tabs.length-1]);"
+    "var t=g.tabs[1];"
+    "t.linkedBrowser.loadURI(u,{triggeringPrincipal:Services.scriptSecurityManager.getSystemPrincipal()});"
+    "g.selectedTab=g.tabs[0];"
+    "})();"
+)
+PY
+)"
+  timeout 12 /usr/bin/firefox-esr --profile "$PROFILE" -remote "$js" 2>/dev/null || true
   sleep 1
   focus_ha_tab
 }
@@ -141,6 +147,18 @@ ensure_youtube_tab_slot() {
   "${HOME}/bin/kiosk-ensure-two-tabs.sh" 2>/dev/null || true
   focus_ha_tab
 }
+
+if "${HOME}/bin/kiosk-firefox-kiosk-running.sh"; then
+  echo "Firefox kiosque déjà actif — pas de kill / pas de 2e lancement $(date)" >>"$LOG"
+  ensure_youtube_tab_slot
+  [ -n "$SECOND_URL" ] && load_second_tab_url "$SECOND_URL"
+  focus_ha_tab
+  exit 0
+fi
+
+rm -f "$PROFILE"/sessionstore.json* "$PROFILE"/sessionCheckpoints.json "$PROFILE"/recovery.json 2>/dev/null || true
+rm -rf "$PROFILE"/sessionstore-backups 2>/dev/null || true
+mkdir -p "$PROFILE"/sessionstore-backups
 
 W=1920
 H=1080
@@ -159,8 +177,10 @@ fi
 
 wait_for_network || echo "réseau partiel (on lance quand même)" >>"$LOG"
 
-pkill -9 -f firefox-esr 2>/dev/null || true
+pkill -f "firefox-esr.*kiosk-profile" 2>/dev/null || true
 sleep 2
+pgrep -f "firefox-esr.*kiosk-profile" >/dev/null 2>&1 && pkill -9 -f "firefox-esr.*kiosk-profile" 2>/dev/null || true
+sleep 1
 pkill -f firefox-geometry-guard 2>/dev/null || true
 pkill -x onboard 2>/dev/null || true
 
@@ -195,7 +215,7 @@ pgrep -f hide-desktop-loop >/dev/null || "${HOME}/bin/hide-desktop-loop.sh" &
 wait_firefox_ready || true
 
 if [ -n "$SECOND_URL" ]; then
-  open_second_tab_background "$SECOND_URL"
+  load_second_tab_url "$SECOND_URL"
   echo "2e onglet (arrière-plan): $SECOND_URL" >>"$LOG"
 else
   ensure_youtube_tab_slot
@@ -236,7 +256,10 @@ for _ in $(seq 1 25); do
   [ -n "$WID" ] && break
   sleep 2
 done
-[ -z "$WID" ] && exit 1
+if [ -z "$WID" ]; then
+  echo "fenêtre HA non trouvée (X11) — Firefox laissé ouvert $(date)" >>"$LOG"
+  exit 0
+fi
 
 for _ in 1 2 3 4 5; do
   xdotool windowmove --sync "$WID" 0 0 2>/dev/null || true

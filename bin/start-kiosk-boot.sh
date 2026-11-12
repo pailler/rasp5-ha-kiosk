@@ -58,9 +58,11 @@ done
 pkill -x onboard 2>/dev/null || true
 
 if [ "${KIOSK_LEGACY:-0}" = "1" ]; then
-  "${HOME}/bin/ha-kiosk-legacy.sh"
+  if ! pgrep -f "ha-kiosk-legacy\\.sh" >/dev/null 2>&1; then
+    nohup "${HOME}/bin/ha-kiosk-legacy.sh" </dev/null >>"$LOG" 2>&1 &
+  fi
 else
-  "${HOME}/bin/ha-meteo-kiosk.sh"
+  nohup "${HOME}/bin/ha-meteo-kiosk.sh" </dev/null >>"$LOG" 2>&1 &
 fi
 
 for _ in $(seq 1 60); do

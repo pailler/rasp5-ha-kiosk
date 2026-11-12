@@ -20,6 +20,12 @@ if [ "$uptime_s" -lt "$GRACE" ]; then
   log "grace démarrage ${uptime_s}s/${GRACE}s — pas de recycle"
   exit 0
 fi
+STAMP_BOOT="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/kiosk-boot-once"
+if [ ! -f "$STAMP_BOOT" ]; then
+  log "boot kiosque pas terminé — pas de recycle"
+  exit 0
+fi
+pgrep -f start-kiosk-boot\\.sh >/dev/null 2>&1 && exit 0
 if [ -f /tmp/ha-kiosk-legacy.lock ] || [ -f /tmp/kiosk-open-tab2.lock ]; then
   log "kiosque en cours de lancement — skip"
   exit 0

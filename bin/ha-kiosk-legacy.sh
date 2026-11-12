@@ -153,7 +153,7 @@ ensure_youtube_tab_slot() {
   focus_ha_tab
 }
 
-if "${HOME}/bin/kiosk-firefox-kiosk-running.sh"; then
+if [ "${KIOSK_FORCE_RELAUNCH:-0}" != "1" ] && "${HOME}/bin/kiosk-firefox-kiosk-running.sh"; then
   echo "Firefox actif — charge URL HA si vide $(date)" >>"$LOG"
   "${HOME}/bin/kiosk-ensure-ha-url.sh" 2>/dev/null || true
   [ -n "$SECOND_URL" ] && load_second_tab_url "$SECOND_URL"

@@ -94,7 +94,8 @@ class KioskHandler(BaseHTTPRequestHandler):
                 self._json(400, {"error": "missing_v"})
                 return
             mute = (q.get("mute") or [""])[0] in ("1", "true", "yes")
-            origin = f"http://127.0.0.1:{PORT}"
+            origin_host = os.environ.get("KIOSK_YOUTUBE_ORIGIN_HOST", "127.0.0.1")
+            origin = f"http://{origin_host}:{PORT}"
             qs = (
                 f"autoplay=1&rel=0&playsinline=1&modestbranding=1"
                 f"&origin={urllib.parse.quote(origin, safe='')}"

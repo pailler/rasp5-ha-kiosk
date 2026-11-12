@@ -35,9 +35,19 @@ case "$src" in
   *mute=1*|*mute=true*) mute=1 ;;
 esac
 
-port="${KIOSK_HTTP_PORT:-8765}"
-page="http://127.0.0.1:${port}/youtube?v=${vid}"
-[ "$mute" -eq 1 ] && page="${page}&mute=1"
+CONF="${HOME}/.config/ha-kiosk.env"
+[ -r "$CONF" ] && . "$CONF"
+mode="${KIOSK_YOUTUBE_MODE:-watch}"
+
+if [ "$mode" = "embed-page" ]; then
+  port="${KIOSK_HTTP_PORT:-8765}"
+  host="${KIOSK_YOUTUBE_ORIGIN_HOST:-127.0.0.1}"
+  page="http://${host}:${port}/youtube?v=${vid}"
+  [ "$mute" -eq 1 ] && page="${page}&mute=1"
+else
+  page="https://www.youtube.com/watch?v=${vid}&autoplay=1"
+  [ "$mute" -eq 1 ] && page="${page}&mute=1"
+fi
 
 export DISPLAY="${DISPLAY:-:0}"
 export XAUTHORITY="${XAUTHORITY:-${HOME}/.Xauthority}"
@@ -57,8 +67,12 @@ nohup "$CHR" --user-data-dir="$CHR_PROFILE" --kiosk --no-first-run --no-default-
   --check-for-update-interval=31536000 "$page" </dev/null >>"$LOG" 2>&1 &
 
 for _ in $(seq 1 20); do
-  pgrep -x chromium >/dev/null 2>&1 && exit 0
-  pgrep -f "chromium.*youtube-nocookie" >/dev/null 2>&1 && exit 0
+  pgrep -x chromium >/dev/null 2>&1 && break
   sleep 1
 done
-exit 1
+pgrep -x chromium >/dev/null 2>&1 || exit 1
+if command -v xdotool >/dev/null 2>&1; then
+  sleep 2
+  xdotool key --clearmodifiers space 2>/dev/null || true
+fi
+exit 0

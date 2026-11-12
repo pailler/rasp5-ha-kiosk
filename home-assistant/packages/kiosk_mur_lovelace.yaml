@@ -1,13 +1,7 @@
-# Mur Pi : tout dans Lovelace (1 onglet Firefox). Pas d’onglet 2 / pas de rest /tab2.
-# secrets.yaml : rasp5_kiosk_http_authorization: "Bearer …"  (~/.config/kiosk-http-token sur le Pi)
-# Ajouter les vues Lovelace depuis home-assistant/lovelace/
+# Mur Pi — Lovelace (1 onglet). Conserver input_text.mural_youtube_url / mural_youtube_audio_bose (ancien package ou déjà créés).
+# Désactiver packages/kiosk_youtube_onglet2.yaml → renommer en .yaml.disabled
 
 input_text:
-  mural_youtube_url:
-    name: YouTube (écran mural)
-    icon: mdi:youtube
-    max: 255
-    initial: ""
   mural_youtube_embed:
     name: URL embed YouTube (mur)
     icon: mdi:youtube-subscription
@@ -23,22 +17,6 @@ input_text:
     icon: mdi:television
     max: 160
     initial: "/local/mural-youtube-embed.html"
-
-input_boolean:
-  mural_youtube_audio_bose:
-    name: Audio sur la Bose (Chromecast)
-    icon: mdi:speaker-wireless
-    initial: true
-
-rest_command:
-  rasp5_kiosk_navigate:
-    url: "http://192.168.1.56:8765/navigate"
-    method: POST
-    headers:
-      Authorization: !secret rasp5_kiosk_http_authorization
-      Content-Type: "application/json"
-    timeout: 45
-    payload: "{\"path\": \"{{ path }}\"}"
 
 script:
   mural_afficher_youtube_lovelace:

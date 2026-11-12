@@ -84,12 +84,14 @@ focus_ha_tab() {
   done
 }
 
-ensure_wayland_fullscreen_once() {
+ensure_wayland_maximize_once() {
+  # Maximise sous Wayfire (pas F11 : le plein écran navigateur casse pinch/zoom tactile).
   (
-    sleep 20
+    sleep 18
     firefox_focus_window 2>/dev/null || true
-    sleep 1
-    command -v wtype >/dev/null 2>&1 && wtype -k F11 2>/dev/null || true
+    sleep 0.5
+    command -v wtype >/dev/null 2>&1 || exit 0
+    wtype -M super -k Up 2>/dev/null || wtype -M logo -k Up 2>/dev/null || true
   ) &
 }
 
@@ -159,9 +161,22 @@ pkill -x onboard 2>/dev/null || true
 echo "=== ha-kiosk-legacy $(date) wayland=$KIOSK_FIREFOX_WAYLAND === URL=$URL" >>"$LOG"
 
 FF_CMD=(/usr/bin/firefox-esr --no-remote --profile "$PROFILE" --start-maximized)
+FULLSCREEN_MODE="${KIOSK_FULLSCREEN:-maximize}"
+
 "${FF_CMD[@]}" "$URL" &
 if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ]; then
-  ensure_wayland_fullscreen_once
+  case "$FULLSCREEN_MODE" in
+    f11)
+      (
+        sleep 20
+        firefox_focus_window 2>/dev/null || true
+        command -v wtype >/dev/null 2>&1 && wtype -k F11 2>/dev/null || true
+      ) &
+      ;;
+    maximize|*)
+      ensure_wayland_maximize_once
+      ;;
+  esac
 fi
 
 sleep 22

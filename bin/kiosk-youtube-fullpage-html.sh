@@ -29,7 +29,9 @@ mute = "mute=1" in src or "mute=true" in src.lower()
 qs = "autoplay=1&rel=0&playsinline=1&modestbranding=1"
 if mute:
     qs += "&mute=1"
-embed = f"https://www.youtube-nocookie.com/embed/{urllib.parse.quote(vid, safe='')}?{qs}"
+origin = "http://127.0.0.1:8765"
+qs += f"&origin={urllib.parse.quote(origin)}&widget_referrer={urllib.parse.quote(origin)}"
+embed = f"https://www.youtube.com/embed/{urllib.parse.quote(vid, safe='')}?{qs}"
 out_path = os.environ["OUT_PATH"]
 body = f"""<!DOCTYPE html>
 <html lang="fr"><head>

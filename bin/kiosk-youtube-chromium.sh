@@ -35,15 +35,16 @@ case "$src" in
   *mute=1*|*mute=true*) mute=1 ;;
 esac
 
-embed="https://www.youtube-nocookie.com/embed/${vid}?autoplay=1&rel=0&playsinline=1&modestbranding=1"
-[ "$mute" -eq 1 ] && embed="${embed}&mute=1"
+port="${KIOSK_HTTP_PORT:-8765}"
+page="http://127.0.0.1:${port}/youtube?v=${vid}"
+[ "$mute" -eq 1 ] && page="${page}&mute=1"
 
 export DISPLAY="${DISPLAY:-:0}"
 export XAUTHORITY="${XAUTHORITY:-${HOME}/.Xauthority}"
-CHR_PROFILE="${HOME}/.config/chromium-youtube-kiosk}"
+CHR_PROFILE="${HOME}/.config/chromium-youtube-kiosk"
 mkdir -p "$CHR_PROFILE"
 
-echo "youtube-chromium: $embed $(date)" >>"$LOG"
+echo "youtube-chromium: $page $(date)" >>"$LOG"
 pkill -x chromium 2>/dev/null || true
 pkill -f 'firefox-esr.*kiosk-profile' 2>/dev/null || true
 sleep 1
@@ -53,7 +54,7 @@ command -v chromium >/dev/null 2>&1 || CHR=chromium-browser
 
 nohup "$CHR" --user-data-dir="$CHR_PROFILE" --kiosk --no-first-run --no-default-browser-check \
   --disable-session-crashed-bubble --disable-infobars --autoplay-policy=no-user-gesture-required \
-  --check-for-update-interval=31536000 "$embed" </dev/null >>"$LOG" 2>&1 &
+  --check-for-update-interval=31536000 "$page" </dev/null >>"$LOG" 2>&1 &
 
 for _ in $(seq 1 20); do
   pgrep -x chromium >/dev/null 2>&1 && exit 0

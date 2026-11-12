@@ -94,10 +94,15 @@ class KioskHandler(BaseHTTPRequestHandler):
                 self._json(400, {"error": "missing_v"})
                 return
             mute = (q.get("mute") or [""])[0] in ("1", "true", "yes")
-            qs = "autoplay=1&rel=0&playsinline=1&modestbranding=1"
+            origin = f"http://127.0.0.1:{PORT}"
+            qs = (
+                f"autoplay=1&rel=0&playsinline=1&modestbranding=1"
+                f"&origin={urllib.parse.quote(origin, safe='')}"
+                f"&widget_referrer={urllib.parse.quote(origin, safe='')}"
+            )
             if mute:
                 qs += "&mute=1"
-            embed = f"https://www.youtube-nocookie.com/embed/{urllib.parse.quote(vid, safe='')}?{qs}"
+            embed = f"https://www.youtube.com/embed/{urllib.parse.quote(vid, safe='')}?{qs}"
             body = (
                 "<!DOCTYPE html><html><head><meta charset=utf-8>"
                 "<meta name=viewport content=\"width=device-width,initial-scale=1\">"

@@ -139,6 +139,11 @@ if [ "$KIOSK_FIREFOX_WAYLAND" != "1" ] && command -v xrandr >/dev/null 2>&1; the
 fi
 "${HOME}/bin/kiosk-firefox-userjs.sh" "$PROFILE" "$URL"
 
+if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ] && [ "${FULLSCREEN_MODE:-0}" != "0" ]; then
+  FULLSCREEN_MODE="${KIOSK_FULLSCREEN:-fullscreen}"
+  [ "$FULLSCREEN_MODE" != "0" ] && "${HOME}/bin/kiosk-wayfire-window-rules.sh" 2>/dev/null || true
+fi
+
 wait_for_network || echo "réseau partiel (on lance quand même)" >>"$LOG"
 
 pkill -9 -f firefox-esr 2>/dev/null || true

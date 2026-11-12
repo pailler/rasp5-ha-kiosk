@@ -110,11 +110,21 @@ class KioskHandler(BaseHTTPRequestHandler):
             if not os.path.isfile(NAVIGATE_SCRIPT):
                 self._json(503, {"error": "navigate_script_missing"})
                 return
+            nav_env = os.environ.copy()
+            nav_env.setdefault("DISPLAY", ":0")
+            nav_env.setdefault("WAYLAND_DISPLAY", "wayland-1")
+            nav_env.setdefault("XAUTHORITY", os.path.expanduser("~/.Xauthority"))
             try:
                 subprocess.run(
-                    ["/bin/bash", "-lc", f". '{SESSION_ENV}' && exec '{NAVIGATE_SCRIPT}' {json.dumps(rel)}"],
+                    [
+                        "/bin/bash",
+                        "-lc",
+                        f". '{SESSION_ENV}' && export DISPLAY=:0 XAUTHORITY=$HOME/.Xauthority && "
+                        f"exec '{NAVIGATE_SCRIPT}' {json.dumps(rel)}",
+                    ],
                     check=True,
-                    timeout=30,
+                    timeout=45,
+                    env=nav_env,
                 )
             except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
                 self._json(502, {"error": "navigate_failed", "detail": str(e)})

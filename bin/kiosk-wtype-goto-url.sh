@@ -4,8 +4,14 @@ set -uo pipefail
 . "$(dirname "$0")/kiosk-session-env.sh"
 url="${1:-}"
 [ -n "$url" ] || exit 1
-command -v wtype >/dev/null 2>&1 || exit 1
 export DISPLAY="${DISPLAY:-:0}"
+export XAUTHORITY="${XAUTHORITY:-${HOME}/.Xauthority}"
+CONF="${HOME}/.config/ha-kiosk.env"
+[ -r "$CONF" ] && . "$CONF"
+if [ "${KIOSK_FIREFOX_WAYLAND:-0}" != "1" ]; then
+  exec "${HOME}/bin/kiosk-xdotool-goto-url.sh" "$url"
+fi
+command -v wtype >/dev/null 2>&1 || exit 1
 "${HOME}/bin/kiosk-focus-firefox-window.sh" 2>/dev/null || true
 sleep 0.25
 wtype -k F6 2>/dev/null || true

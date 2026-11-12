@@ -16,7 +16,13 @@ case "$PATH_REL" in
   *) PATH_REL="/${PATH_REL}" ;;
 esac
 
-"${HOME}/bin/kiosk-firefox-kiosk-running.sh" || exit 1
+if ! "${HOME}/bin/kiosk-firefox-kiosk-running.sh"; then
+  if ! pgrep -x firefox-esr >/dev/null; then
+    echo "navigate: pas de Firefox $(date)" >>"$LOG"
+    exit 1
+  fi
+  echo "navigate: Firefox sans profil kiosque détecté, on continue $(date)" >>"$LOG"
+fi
 
 target="${HA_BASE}${PATH_REL}"
 js="$(python3 - "$target" <<'PY'

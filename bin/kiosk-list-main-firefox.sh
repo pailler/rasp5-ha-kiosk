@@ -4,6 +4,10 @@ set -uo pipefail
 while read -r pid args; do
   [ -z "$pid" ] && continue
   case "$args" in
-    *kiosk-profile*--no-remote*) echo "$pid" ;;
+    *kiosk-profile*)
+      case "$args" in
+        *--no-remote*|*--profile*) echo "$pid" ;;
+      esac
+      ;;
   esac
 done < <(ps -C firefox-esr -o pid=,args= 2>/dev/null)

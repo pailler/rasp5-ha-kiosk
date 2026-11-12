@@ -16,6 +16,7 @@ HA_BASE="${HA_BASE%/}"
 
 pkill -x chromium 2>/dev/null || true
 sleep 1
+pactl set-sink-mute @DEFAULT_SINK@ 0 2>/dev/null || true
 
 url=""
 for try in 1 2 3; do

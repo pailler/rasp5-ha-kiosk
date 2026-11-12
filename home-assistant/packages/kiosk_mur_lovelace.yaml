@@ -49,8 +49,13 @@ script:
           bose_audio: >-
             {% set s = states('input_boolean.mural_youtube_audio_bose') %}
             {{ s == 'on' if s not in ['unknown', 'unavailable'] else true }}
+          navigate_url: >-
+            https://www.youtube.com/watch?v={{ youtube_id }}{% if bose_audio %}&mute=1{% endif %}
+          navigate_embed_url: >-
+            https://www.youtube-nocookie.com/embed/{{ youtube_id }}?autoplay=1&playsinline=1&rel=0{% if bose_audio %}&mute=1{% endif %}
           path_yt: >-
-            {{ states('input_text.mural_lovelace_path_youtube') | trim }}?v={{ youtube_id }}
+            {% set base = states('input_text.mural_lovelace_path_youtube') | trim %}
+            {{ base }}?v={{ youtube_id }}{% if bose_audio %}&mute=1{% endif %}
       - if:
           - condition: template
             value_template: "{{ not url_ok }}"
@@ -73,7 +78,7 @@ script:
           value: "{{ target_url }}"
       - action: rest_command.rasp5_kiosk_navigate
         data:
-          path: "{{ path_yt }}"
+          url: "{{ navigate_embed_url }}"
         continue_on_error: true
       - if:
           - condition: template
@@ -83,11 +88,24 @@ script:
             target:
               entity_id: switch.multiprise_musique_bose
             continue_on_error: true
+          - delay:
+              seconds: 8
+          - action: media_player.turn_on
+            target:
+              entity_id: media_player.musique_bose_2
+            continue_on_error: true
           - action: media_player.volume_set
             target:
               entity_id: media_player.musique_bose_2
             data:
-              volume_level: 0.45
+              volume_level: 0.5
+            continue_on_error: true
+          - action: media_player.play_media
+            target:
+              entity_id: media_player.musique_bose_2
+            data:
+              media_content_id: "https://www.youtube.com/watch?v={{ youtube_id }}"
+              media_content_type: cast
             continue_on_error: true
           - action: media_player.play_media
             target:

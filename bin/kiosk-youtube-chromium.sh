@@ -37,16 +37,21 @@ esac
 
 CONF="${HOME}/.config/ha-kiosk.env"
 [ -r "$CONF" ] && . "$CONF"
-mode="${KIOSK_YOUTUBE_MODE:-watch}"
+mode="${KIOSK_YOUTUBE_MODE:-embed-direct}"
+
+embed_qs="autoplay=1&playsinline=1&rel=0&modestbranding=1&fs=1"
+[ "$mute" -eq 1 ] && embed_qs="${embed_qs}&mute=1"
 
 if [ "$mode" = "embed-page" ]; then
   port="${KIOSK_HTTP_PORT:-8765}"
   host="${KIOSK_YOUTUBE_ORIGIN_HOST:-127.0.0.1}"
   page="http://${host}:${port}/youtube?v=${vid}"
   [ "$mute" -eq 1 ] && page="${page}&mute=1"
-else
+elif [ "$mode" = "watch" ]; then
   page="https://www.youtube.com/watch?v=${vid}&autoplay=1"
   [ "$mute" -eq 1 ] && page="${page}&mute=1"
+else
+  page="https://www.youtube-nocookie.com/embed/${vid}?${embed_qs}"
 fi
 
 export DISPLAY="${DISPLAY:-:0}"
@@ -62,15 +67,30 @@ sleep 1
 CHR=chromium
 command -v chromium >/dev/null 2>&1 || CHR=chromium-browser
 
+CHR_EXTRA=()
+# Pi 5 + X11 : watch.youtube = son sans image ; embed + GLES plus fiable.
+read -r -a CHR_EXTRA <<<"${KIOSK_CHROMIUM_FLAGS:---ozone-platform=x11 --ignore-gpu-blocklist --use-gl=angle --enable-accelerated-video-decode}"
+
 nohup "$CHR" --user-data-dir="$CHR_PROFILE" --kiosk --no-first-run --no-default-browser-check \
   --disable-session-crashed-bubble --disable-infobars --autoplay-policy=no-user-gesture-required \
-  --check-for-update-interval=31536000 "$page" </dev/null >>"$LOG" 2>&1 &
+  --check-for-update-interval=31536000 \
+  "${CHR_EXTRA[@]}" "$page" </dev/null >>"$LOG" 2>&1 &
 
 for _ in $(seq 1 20); do
   pgrep -x chromium >/dev/null 2>&1 && break
   sleep 1
 done
 pgrep -x chromium >/dev/null 2>&1 || exit 1
+
+if command -v pactl >/dev/null 2>&1; then
+  if [ "$mute" -eq 1 ]; then
+    pactl set-sink-mute @DEFAULT_SINK@ 1 2>/dev/null || true
+    echo "youtube-chromium: HDMI muet (son Bose) $(date)" >>"$LOG"
+  else
+    pactl set-sink-mute @DEFAULT_SINK@ 0 2>/dev/null || true
+  fi
+fi
+
 if command -v xdotool >/dev/null 2>&1; then
   sleep 2
   xdotool key --clearmodifiers space 2>/dev/null || true

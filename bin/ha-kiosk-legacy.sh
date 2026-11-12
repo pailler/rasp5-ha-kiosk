@@ -156,8 +156,6 @@ ensure_youtube_tab_slot() {
 if "${HOME}/bin/kiosk-firefox-kiosk-running.sh"; then
   echo "Firefox kiosque déjà actif — focus HA $(date)" >>"$LOG"
   [ -n "$SECOND_URL" ] && load_second_tab_url "$SECOND_URL"
-  focus_ha_tab
-  "${HOME}/bin/kiosk-nudge-ha.sh" 2>/dev/null || true
   exit 0
 fi
 
@@ -234,10 +232,8 @@ fi
 
 focus_ha_tab
 "${HOME}/bin/kiosk-prune-extra-firefox.sh" 2>/dev/null || true
-"${HOME}/bin/kiosk-apply-fullscreen.sh" 2>/dev/null || true
-(
-  sleep 50
-  "${HOME}/bin/kiosk-nudge-ha.sh" 2>/dev/null || true
-) &
+if [ "${KIOSK_APPLY_FULLSCREEN:-0}" = "1" ]; then
+  "${HOME}/bin/kiosk-apply-fullscreen.sh" 2>/dev/null || true
+fi
 pgrep -af "firefox-esr.*kiosk-profile.*--no-remote" | head -1 >>"$LOG"
 exit 0

@@ -88,11 +88,7 @@ for _ in $(seq 1 90); do
   echo "kiosque OK (instances=${n})"
   touch "$STAMP"
   "${HOME}/bin/kiosk-apply-fullscreen.sh" 2>/dev/null || true
-  (
-    sleep 120
-    pgrep -x firefox-esr >/dev/null && "${HOME}/bin/kiosk-nudge-ha.sh" || "${HOME}/bin/kiosk-recover-display.sh"
-  ) &
-  exit 0
+    exit 0
 done
 
 echo "échec final kiosque (un seul lancement)"

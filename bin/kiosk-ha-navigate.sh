@@ -31,7 +31,7 @@ vid = (params.get("v") or [""])[0]
 if len(vid) < 6:
     raise SystemExit(1)
 mute = (params.get("mute") or [""])[0] in ("1", "true", "yes")
-url = f"https://www.youtube.com/watch?v={urllib.parse.quote(vid, safe='')}"
+url = f"https://www.youtube.com/watch?v={vid}"
 if mute:
     url += "&mute=1"
 print(url)

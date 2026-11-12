@@ -50,6 +50,11 @@ lines = [
     # Jamais de homepage : sinon Firefox rouvre le dashboard au lieu de l’URL CLI (YouTube).
     'user_pref("browser.startup.page", 0);',
     'user_pref("browser.sessionstore.max_tabs_undo", 0);',
+    'user_pref("privacy.trackingprotection.enabled", false);',
+    'user_pref("media.autoplay.default", 0);',
+    'user_pref("media.autoplay.allow-muted", true);',
+    'user_pref("media.autoplay.blocking_policy", 0);',
+    'user_pref("general.useragent.override", "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36");',
 ]
 if start_url:
     _ = start_url  # URL uniquement sur la ligne de commande firefox, pas en user_pref homepage.

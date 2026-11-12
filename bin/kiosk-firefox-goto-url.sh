@@ -8,6 +8,30 @@ LOG="${HOME}/kiosk.log"
 url="${1:-}"
 [ -n "$url" ] || exit 1
 
+case "$url" in
+  *youtube.com*|*youtu.be*|*mural-youtube-embed*)
+    if file_url="$("${HOME}/bin/kiosk-youtube-fullpage-html.sh" "$url" 2>/dev/null)"; then
+      url="$file_url"
+      echo "goto-url: page locale iframe $(date)" >>"$LOG"
+    fi
+    ;;
+esac
+
+if [ "${KIOSK_YOUTUBE_USE_CHROMIUM:-0}" = "1" ] && command -v chromium >/dev/null 2>&1 \
+  && [[ "${1:-}" == *youtube* || "${1:-}" == *youtu.be* ]]; then
+  export DISPLAY="${DISPLAY:-:0}"
+  export XAUTHORITY="${XAUTHORITY:-${HOME}/.Xauthority}"
+  pkill -x chromium 2>/dev/null || true
+  sleep 1
+  CHR_PROFILE="${HOME}/.config/chromium-youtube-kiosk"
+  mkdir -p "$CHR_PROFILE"
+  nohup chromium --user-data-dir="$CHR_PROFILE" --kiosk --no-first-run --no-default-browser-check \
+    --disable-session-crashed-bubble --autoplay-policy=no-user-gesture-required \
+    "${1}" </dev/null >>"$LOG" 2>&1 &
+  sleep 3
+  pgrep -x chromium >/dev/null && exit 0
+fi
+
 export DISPLAY="${DISPLAY:-:0}"
 export XAUTHORITY="${XAUTHORITY:-${HOME}/.Xauthority}"
 export WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-1}"

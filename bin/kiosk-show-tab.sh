@@ -32,5 +32,5 @@ print(
 PY
 )
 
-timeout 8 /usr/bin/firefox-esr --profile "$PROFILE" -remote "$JS" 2>/dev/null || true
+"${HOME}/bin/kiosk-firefox-remote.sh" "$JS" 2>/dev/null || true
 command -v wtype >/dev/null 2>&1 && wtype -M ctrl -k "$TAB" 2>/dev/null || true

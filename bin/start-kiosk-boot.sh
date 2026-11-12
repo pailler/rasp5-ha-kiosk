@@ -32,6 +32,7 @@ export DISPLAY="${DISPLAY:-:0}"
 
 if "${HOME}/bin/kiosk-browser-active.sh"; then
   echo "Firefox déjà actif"
+  "${HOME}/bin/kiosk-prune-extra-firefox.sh" 2>/dev/null || true
   touch "$STAMP"
   exit 0
 fi
@@ -70,12 +71,10 @@ for _ in $(seq 1 60); do
     echo "kiosque OK"
     touch "$STAMP"
     "${HOME}/bin/kiosk-apply-fullscreen.sh" 2>/dev/null || true
-    for delay in 45 120; do
-      (
-        sleep "$delay"
-        "${HOME}/bin/kiosk-recover-display.sh" || true
-      ) &
-    done
+    (
+      sleep 90
+      "${HOME}/bin/kiosk-recover-display.sh" || true
+    ) &
     exit 0
   fi
   sleep 2

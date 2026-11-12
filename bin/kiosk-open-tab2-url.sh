@@ -34,7 +34,7 @@ then
 fi
 
 firefox_remote() {
-  timeout 12 /usr/bin/firefox-esr --profile "$PROFILE" -remote "$1" 2>&1 || true
+  "${HOME}/bin/kiosk-firefox-remote.sh" "$1" 2>&1 || true
 }
 
 firefox_remote 'javascript:(function(){var wm=Services.wm;var keep=wm.getMostRecentBrowserWindow();var e=wm.getEnumerator("navigator:browser");while(e.hasMoreElements()){var w=e.getNext();if(w!==keep)try{w.close();}catch(x){}}})();'

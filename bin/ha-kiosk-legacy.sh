@@ -140,7 +140,7 @@ print(
 )
 PY
 )"
-  timeout 12 /usr/bin/firefox-esr --profile "$PROFILE" -remote "$js" 2>/dev/null || true
+  "${HOME}/bin/kiosk-firefox-remote.sh" "$js" 2>/dev/null || true
   sleep 1
   focus_ha_tab
 }
@@ -207,7 +207,8 @@ case "$FULLSCREEN_MODE" in
     ;;
 esac
 
-"${FF_CMD[@]}" "$URL" &
+"${HOME}/bin/kiosk-prune-extra-firefox.sh" 2>/dev/null || true
+"${HOME}/bin/kiosk-firefox-launch-once.sh" "${FF_CMD[@]}" "$URL"
 if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ] && [ "$FULLSCREEN_MODE" != "0" ] && [ "$FULLSCREEN_MODE" != "kiosk" ]; then
   "${HOME}/bin/kiosk-apply-fullscreen.sh" 2>/dev/null || true
 fi
@@ -226,6 +227,7 @@ else
 fi
 
 focus_ha_tab
+"${HOME}/bin/kiosk-prune-extra-firefox.sh" 2>/dev/null || true
 
 if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ]; then
   if [ "$FULLSCREEN_MODE" = "f11" ]; then

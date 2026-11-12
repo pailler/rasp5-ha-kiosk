@@ -52,6 +52,13 @@ while read -r rss; do
   [ -n "$rss" ] && ff_rss=$((ff_rss + rss))
 done < <(ps -C firefox-esr -o rss= 2>/dev/null)
 
+ff_n=$(pgrep -af 'firefox-esr.*kiosk-profile.*--no-remote' 2>/dev/null | wc -l)
+if [ "$ff_n" -gt 1 ]; then
+  log "${ff_n} Firefox kiosque → élagage"
+  "${HOME}/bin/kiosk-prune-extra-firefox.sh" >>"$LOG" 2>&1 || true
+  exit 0
+fi
+
 if ! pgrep -x firefox-esr >/dev/null; then
   pkill -x onboard 2>/dev/null || true
   log "firefox absent → relance kiosque"

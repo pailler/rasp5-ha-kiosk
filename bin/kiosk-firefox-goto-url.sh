@@ -38,8 +38,10 @@ fi
 
 PROFILE="${HOME}/.mozilla/kiosk-profile"
 echo "goto-url: relance Firefox → $url $(date)" >>"$LOG"
-"${HOME}/bin/kiosk-firefox-userjs.sh" "$PROFILE" "" 2>/dev/null || true
-rm -f "$PROFILE"/sessionstore.json* "$PROFILE"/sessionCheckpoints.json "$PROFILE"/recovery.json 2>/dev/null || true
+if [ "${KIOSK_GOTO_KEEP_SESSION:-0}" != "1" ]; then
+  "${HOME}/bin/kiosk-firefox-userjs.sh" "$PROFILE" "" 2>/dev/null || true
+  rm -f "$PROFILE"/sessionstore.json* "$PROFILE"/sessionCheckpoints.json "$PROFILE"/recovery.json 2>/dev/null || true
+fi
 pkill -9 -f 'firefox-esr.*kiosk-profile' 2>/dev/null || pkill -x firefox-esr 2>/dev/null || true
 sleep 1
 rm -f /tmp/kiosk-firefox-launch.lock /tmp/ha-kiosk-legacy.lock

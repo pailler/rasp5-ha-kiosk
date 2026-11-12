@@ -9,6 +9,12 @@ flock -n 8 || exit 0
 CONF="${HOME}/.config/ha-kiosk.env"
 [ -r "$CONF" ] && . "$CONF"
 
+FULLSCREEN_MODE="${KIOSK_FULLSCREEN:-fullscreen}"
+# kiosk + X11 : vrai plein écran (--kiosk Wayland = écran noir sur Pi 5)
+if [ "$FULLSCREEN_MODE" = "kiosk" ] && [ "${KIOSK_KIOSK_USE_X11:-1}" = "1" ]; then
+  KIOSK_FIREFOX_WAYLAND=0
+fi
+
 export DISPLAY="${DISPLAY:-:0}"
 export GNOME_KEYRING_CONTROL=
 export SECRET_SERVICE_DISABLE=1
@@ -139,9 +145,8 @@ if [ "$KIOSK_FIREFOX_WAYLAND" != "1" ] && command -v xrandr >/dev/null 2>&1; the
 fi
 "${HOME}/bin/kiosk-firefox-userjs.sh" "$PROFILE" "$URL"
 
-if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ] && [ "${FULLSCREEN_MODE:-0}" != "0" ]; then
-  FULLSCREEN_MODE="${KIOSK_FULLSCREEN:-fullscreen}"
-  [ "$FULLSCREEN_MODE" != "0" ] && "${HOME}/bin/kiosk-wayfire-window-rules.sh" 2>/dev/null || true
+if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ] && [ "$FULLSCREEN_MODE" = "fullscreen" ]; then
+  "${HOME}/bin/kiosk-wayfire-window-rules.sh" 2>/dev/null || true
 fi
 
 wait_for_network || echo "réseau partiel (on lance quand même)" >>"$LOG"
@@ -153,12 +158,26 @@ pkill -x onboard 2>/dev/null || true
 
 echo "=== ha-kiosk-legacy $(date) wayland=$KIOSK_FIREFOX_WAYLAND === URL=$URL" >>"$LOG"
 
-FULLSCREEN_MODE="${KIOSK_FULLSCREEN:-fullscreen}"
-# --kiosk provoque écran noir sur Pi 5 + Wayfire ; plein écran = start-maximized + Wayfire.
-FF_CMD=(/usr/bin/firefox-esr --no-remote --profile "$PROFILE" --start-maximized)
+case "$FULLSCREEN_MODE" in
+  kiosk)
+    FF_CMD=(/usr/bin/firefox-esr --no-remote --profile "$PROFILE" --kiosk)
+    echo "lancement Firefox --kiosk (wayland=$KIOSK_FIREFOX_WAYLAND)" >>"$LOG"
+    ;;
+  f11)
+    FF_CMD=(/usr/bin/firefox-esr --no-remote --profile "$PROFILE")
+    echo "lancement Firefox + F11 plein écran" >>"$LOG"
+    ;;
+  0)
+    FF_CMD=(/usr/bin/firefox-esr --no-remote --profile "$PROFILE")
+    ;;
+  *)
+    FF_CMD=(/usr/bin/firefox-esr --no-remote --profile "$PROFILE" --start-maximized)
+    echo "lancement Firefox start-maximized (Wayfire)" >>"$LOG"
+    ;;
+esac
 
 "${FF_CMD[@]}" "$URL" &
-if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ] && [ "$FULLSCREEN_MODE" != "0" ]; then
+if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ] && [ "$FULLSCREEN_MODE" != "0" ] && [ "$FULLSCREEN_MODE" != "kiosk" ]; then
   "${HOME}/bin/kiosk-apply-fullscreen.sh" 2>/dev/null || true
 fi
 
@@ -172,6 +191,16 @@ if [ -n "$SECOND_URL" ]; then
 fi
 
 if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ]; then
+  if [ "$FULLSCREEN_MODE" = "f11" ]; then
+    i=0
+    while [ "$i" -lt 12 ]; do
+      sleep 2
+      pgrep -x firefox-esr >/dev/null || break
+      command -v wtype >/dev/null 2>&1 && wtype -k F11 2>/dev/null || true
+      i=$((i + 1))
+    done
+    echo "plein écran F11 (Wayland) $(date)" >>"$LOG"
+  fi
   pgrep -af "firefox-esr.*kiosk-profile" | head -1 >>"$LOG"
   exit 0
 fi
@@ -195,13 +224,14 @@ for _ in $(seq 1 25); do
 done
 [ -z "$WID" ] && exit 1
 
-FULLSCREEN_MODE="${KIOSK_FULLSCREEN:-fullscreen}"
-
 for _ in 1 2 3 4 5; do
   xdotool windowmove --sync "$WID" 0 0 2>/dev/null || true
   xdotool windowsize --sync "$WID" "$W" "$H" 2>/dev/null || true
   if [ "$FULLSCREEN_MODE" = "f11" ]; then
     xdotool key --window "$WID" F11 2>/dev/null || true
+  fi
+  if [ "$FULLSCREEN_MODE" = "kiosk" ]; then
+    break
   fi
   sleep 2
   eval "$(xdotool getwindowgeometry --shell "$WID" 2>/dev/null)"

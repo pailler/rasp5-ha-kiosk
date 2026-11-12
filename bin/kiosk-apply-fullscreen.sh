@@ -9,6 +9,7 @@ export WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-1}"
 
 MODE="${KIOSK_FULLSCREEN:-fullscreen}"
 [ "${KIOSK_FIREFOX_WAYLAND:-1}" != "1" ] && exit 0
+[ "$MODE" = "kiosk" ] && exit 0
 LOG="${HOME}/kiosk.log"
 
 "${HOME}/bin/kiosk-wayfire-window-rules.sh" 2>/dev/null || true
@@ -48,9 +49,14 @@ apply_f11() {
       exit 0
     fi
     case "$MODE" in
-      f11) apply_f11 ;;
-      *) apply_maximize ;;
+      f11)
+        apply_f11
+        echo "plein écran F11 (wtype) $(date)" >>"$LOG"
+        ;;
+      *)
+        apply_maximize
+        echo "plein écran Wayfire (règles + maximize) $(date)" >>"$LOG"
+        ;;
     esac
-    echo "plein écran Wayfire (règles + maximize) $(date)" >>"$LOG"
   done
 ) &

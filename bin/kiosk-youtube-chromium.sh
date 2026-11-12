@@ -73,7 +73,7 @@ command -v chromium >/dev/null 2>&1 || CHR=chromium-browser
 
 CHR_EXTRA=()
 # Pi 5 + X11 : watch.youtube = son sans image ; embed + GLES plus fiable.
-read -r -a CHR_EXTRA <<<"${KIOSK_CHROMIUM_FLAGS:---ozone-platform=x11 --ignore-gpu-blocklist --use-gl=angle --enable-accelerated-video-decode}"
+read -r -a CHR_EXTRA <<<"${KIOSK_CHROMIUM_FLAGS:---ozone-platform=x11 --ignore-gpu-blocklist --use-gl=egl}"
 
 nohup "$CHR" --user-data-dir="$CHR_PROFILE" --kiosk --no-first-run --no-default-browser-check \
   --disable-session-crashed-bubble --disable-infobars --autoplay-policy=no-user-gesture-required \

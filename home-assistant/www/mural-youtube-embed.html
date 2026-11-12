@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
   <title>Mur — YouTube</title>
   <style>
     html, body { margin: 0; height: 100%; background: #000; }
@@ -11,16 +12,30 @@
   </style>
 </head>
 <body>
-  <iframe id="player" title="YouTube"></iframe>
+  <iframe
+    id="player"
+    title="YouTube"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+    allowfullscreen
+    referrerpolicy="strict-origin-when-cross-origin"
+  ></iframe>
   <script>
     (function () {
       var v = new URLSearchParams(location.search).get("v") || "";
+      var mute = new URLSearchParams(location.search).get("mute") === "1";
       var el = document.getElementById("player");
       if (!v || v.length < 6) {
-        document.body.innerHTML = '<p class="msg">Choisissez une vidéo dans Home Assistant puis « Afficher sur le mur ».</p>';
+        document.body.innerHTML =
+          '<p class="msg">Choisissez une vidéo dans Home Assistant puis « Afficher sur le mur ».</p>';
         return;
       }
-      el.src = "https://www.youtube-nocookie.com/embed/" + encodeURIComponent(v) + "?autoplay=1&rel=0";
+      var origin = location.protocol + "//" + location.host;
+      var qs =
+        "autoplay=1&rel=0&playsinline=1&modestbranding=1" +
+        "&origin=" + encodeURIComponent(origin) +
+        "&widget_referrer=" + encodeURIComponent(origin);
+      if (mute) qs += "&mute=1";
+      el.src = "https://www.youtube.com/embed/" + encodeURIComponent(v) + "?" + qs;
     })();
   </script>
 </body>

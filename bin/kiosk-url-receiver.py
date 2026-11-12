@@ -104,14 +104,21 @@ class KioskHandler(BaseHTTPRequestHandler):
             if mute:
                 qs += "&mute=1"
             embed = (
-                f"https://www.youtube-nocookie.com/embed/{urllib.parse.quote(vid, safe='')}?{qs}"
+                f"https://www.youtube.com/embed/{urllib.parse.quote(vid, safe='')}?{qs}"
+            )
+            allow = (
+                "accelerometer; autoplay; clipboard-write; encrypted-media; "
+                "gyroscope; picture-in-picture; web-share; fullscreen"
             )
             body = (
                 "<!DOCTYPE html><html><head><meta charset=utf-8>"
+                '<meta name="referrer" content="strict-origin-when-cross-origin">'
                 "<meta name=viewport content=\"width=device-width,initial-scale=1\">"
                 "<style>html,body{margin:0;height:100%;background:#000}iframe{border:0;width:100%;height:100%}</style>"
-                f"</head><body><iframe allow=\"autoplay;fullscreen\" allowfullscreen "
-                f'src="{embed}"></iframe></body></html>'
+                f"</head><body><iframe id=yt allow=\"{allow}\" allowfullscreen referrerpolicy=\"strict-origin-when-cross-origin\" "
+                f'src="{embed}"></iframe>'
+                "<script>document.getElementById('yt').focus();</script>"
+                "</body></html>"
             ).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")

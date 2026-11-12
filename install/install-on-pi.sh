@@ -18,6 +18,10 @@ install_local() {
     install -m 755 "$f" "${KIOSK_HOME}/bin/$(basename "$f")"
   done
 
+  if [ -x "${KIOSK_HOME}/bin/kiosk-wayfire-window-rules.sh" ]; then
+    runuser -u "$KIOSK_USER" -- "${KIOSK_HOME}/bin/kiosk-wayfire-window-rules.sh" || true
+  fi
+
   echo "→ /usr/local/bin (wrappers systemd root)"
   sudo install -m 755 "${REPO_ROOT}/systemd/usr-local/check-ram-firefox.sh" /usr/local/bin/check-ram-firefox.sh
   sudo install -m 755 "${REPO_ROOT}/systemd/usr-local/check-firefox.sh" /usr/local/bin/check-firefox.sh

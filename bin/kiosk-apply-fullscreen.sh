@@ -11,6 +11,8 @@ MODE="${KIOSK_FULLSCREEN:-fullscreen}"
 [ "${KIOSK_FIREFOX_WAYLAND:-1}" != "1" ] && exit 0
 LOG="${HOME}/kiosk.log"
 
+"${HOME}/bin/kiosk-wayfire-window-rules.sh" 2>/dev/null || true
+
 firefox_focus_window() {
   local wid best="" area=0 w h a name
   for wid in $(xdotool search --class firefox 2>/dev/null); do
@@ -24,6 +26,7 @@ firefox_focus_window() {
 }
 
 apply_maximize() {
+  # Wayland natif : les règles Wayfire gèrent le maximize ; wtype reste un filet XWayland.
   firefox_focus_window 2>/dev/null || true
   sleep 0.4
   command -v wtype >/dev/null 2>&1 || return 0
@@ -37,16 +40,17 @@ apply_f11() {
 }
 
 (
-  for wait_s in 15 25 20; do
+  for wait_s in 8 20 25; do
     sleep "$wait_s"
     pgrep -x firefox-esr >/dev/null || continue
-  if pgrep -af 'firefox-esr.*--kiosk' >/dev/null 2>&1; then
+    if pgrep -af 'firefox-esr.*--kiosk' >/dev/null 2>&1; then
       echo "plein écran (--kiosk) déjà actif $(date)" >>"$LOG"
       exit 0
     fi
     case "$MODE" in
       f11) apply_f11 ;;
-      *) apply_maximize; echo "plein écran Wayfire appliqué $(date)" >>"$LOG" ;;
+      *) apply_maximize ;;
     esac
+    echo "plein écran Wayfire (règles + maximize) $(date)" >>"$LOG"
   done
 ) &

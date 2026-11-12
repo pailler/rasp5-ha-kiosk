@@ -108,7 +108,13 @@ def main() -> int:
     signed = sign_path(HASS_URL, KIOSK_PATH, token, SIG_EXPIRES)
     if not signed.startswith("/"):
         signed = "/" + signed
-    print(f"{HASS_URL}{signed}")
+    url = f"{HASS_URL}{signed}"
+    # kiosk-mode (HACS) : jeton admin ≠ user « Kiosk » → barre latérale visible sans ?kiosk
+    query = os.environ.get("KIOSK_LOVELACE_QUERY", "kiosk").strip().lstrip("?&")
+    if query:
+        sep = "&" if "?" in url else "?"
+        url = f"{url}{sep}{query}"
+    print(url)
     return 0
 
 

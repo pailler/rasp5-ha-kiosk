@@ -103,9 +103,9 @@ class KioskHandler(BaseHTTPRequestHandler):
             except json.JSONDecodeError:
                 self._json(400, {"error": "invalid_json"})
                 return
-            rel = (data.get("path") or "").strip()
+            rel = (data.get("url") or data.get("path") or "").strip()
             if not rel:
-                self._json(400, {"error": "missing_path"})
+                self._json(400, {"error": "missing_path_or_url"})
                 return
             if not os.path.isfile(NAVIGATE_SCRIPT):
                 self._json(503, {"error": "navigate_script_missing"})

@@ -10,13 +10,16 @@ LOG="${HOME}/kiosk.log"
 HA_BASE="${HA_URL:-http://192.168.1.51:8123}"
 HA_BASE="${HA_BASE%/}"
 
-[ -n "$PATH_REL" ] || { echo "usage: $0 /local/... ou /lovelace/..." >&2; exit 1; }
-case "$PATH_REL" in
-  /*) ;;
-  *) PATH_REL="/${PATH_REL}" ;;
-esac
+[ -n "$PATH_REL" ] || { echo "usage: $0 /local/... | https://..." >&2; exit 1; }
 
-target="${HA_BASE}${PATH_REL}"
+if [[ "$PATH_REL" == http://* ]] || [[ "$PATH_REL" == https://* ]]; then
+  target="$PATH_REL"
+elif [[ "$PATH_REL" == /* ]]; then
+  target="${HA_BASE}${PATH_REL}"
+else
+  PATH_REL="/${PATH_REL}"
+  target="${HA_BASE}${PATH_REL}"
+fi
 if [[ "$PATH_REL" == /lovelace/* ]]; then
   signed="$(KIOSK_USE_LEGACY_TOKEN=1 HA_URL="$HA_BASE" KIOSK_PATH="$PATH_REL" \
     python3 "${HOME}/bin/ha-kiosk-signed-url.py" 2>>"$LOG")" || signed=""

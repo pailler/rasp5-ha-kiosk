@@ -14,6 +14,7 @@ PORT = int(os.environ.get("KIOSK_HTTP_PORT", "8765"))
 TOKEN_PATH = os.path.expanduser("~/.config/kiosk-http-token")
 OPEN_SCRIPT = os.path.expanduser("~/bin/kiosk-open-tab2-url.sh")
 SESSION_ENV = os.path.expanduser("~/bin/kiosk-session-env.sh")
+_LAST_TAB2: tuple[str, float] = ("", 0.0)
 
 
 def load_token() -> str:
@@ -125,6 +126,15 @@ class KioskHandler(BaseHTTPRequestHandler):
             return
 
         mute_local = bool(data.get("mute_local"))
+
+        import time as _time
+        global _LAST_TAB2
+        now = _time.monotonic()
+        if url == _LAST_TAB2[0] and (now - _LAST_TAB2[1]) < 8.0:
+            self._json(202, {"ok": True, "deduped": True, "url": url})
+            return
+        _LAST_TAB2 = (url, now)
+
         lock_path = "/tmp/kiosk-open-tab2.lock"
         try:
             import fcntl

@@ -1,5 +1,5 @@
 #!/bin/bash
-# YouTube dans l’onglet 2 du même Firefox (--no-remote principal, pas de 2ᵉ processus).
+# YouTube → onglet 2 du même Firefox (instance --no-remote). Aucune nouvelle fenêtre.
 set -uo pipefail
 exec 8>/tmp/kiosk-open-tab2.lock
 flock -n 8 || { echo "open-tab2 déjà en cours" >&2; exit 0; }
@@ -13,7 +13,12 @@ PROFILE="${HOME}/.mozilla/kiosk-profile"
 
 [ -n "$URL" ] || { echo "usage: $0 <url>" >&2; exit 1; }
 
-pgrep -x firefox-esr >/dev/null || { echo "Firefox inactif" >>"$LOG"; exit 1; }
+# Une seule fenêtre navigateur kiosque
+ff_main=$(pgrep -ox firefox-esr 2>/dev/null || true)
+if [ -z "$ff_main" ]; then
+  echo "Firefox inactif" >>"$LOG"
+  exit 1
+fi
 
 if ! python3 - "$URL" <<'PY'
 import re, sys
@@ -28,11 +33,13 @@ then
   exit 2
 fi
 
-"${HOME}/bin/kiosk-ensure-two-tabs.sh" 2>/dev/null || true
-
 firefox_remote() {
   timeout 12 /usr/bin/firefox-esr --profile "$PROFILE" -remote "$1" 2>&1 || true
 }
+
+firefox_remote 'javascript:(function(){var wm=Services.wm;var keep=wm.getMostRecentBrowserWindow();var e=wm.getEnumerator("navigator:browser");while(e.hasMoreElements()){var w=e.getNext();if(w!==keep)try{w.close();}catch(x){}}})();'
+
+"${HOME}/bin/kiosk-ensure-two-tabs.sh" 2>/dev/null || true
 
 load_js() {
   python3 - "$URL" <<'PY'
@@ -57,21 +64,13 @@ print(
 PY
 }
 
-ok=0
 out="$(firefox_remote "$(load_js)")"
-if [ -n "$out" ] && ! echo "$out" | grep -qiE 'failed|error|cannot|not running'; then
-  ok=1
+if echo "$out" | grep -qiE 'failed|error|cannot|not running'; then
+  echo "onglet2 remote échec (pas de repli fenêtre): ${out:-vide}" >>"$LOG"
+  exit 1
 fi
 
-if [ "$ok" -eq 0 ]; then
-  echo "remote JS onglet2: ${out:-vide}" >>"$LOG"
-  out="$(firefox_remote "openURL(${URL})")"
-  echo "remote openURL: ${out:-vide}" >>"$LOG"
-fi
-
-sleep 0.4
-"${HOME}/bin/kiosk-show-tab.sh" 2 2>/dev/null || true
-sleep 0.25
+sleep 0.35
 "${HOME}/bin/kiosk-show-tab.sh" 2 2>/dev/null || true
 
 if [ "${KIOSK_MUTE_LOCAL:-0}" = "1" ] && command -v pactl >/dev/null 2>&1; then

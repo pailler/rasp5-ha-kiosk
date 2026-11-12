@@ -90,7 +90,7 @@ template:
           {% if v is number %}
             {{ (v * 100) | round(0) }}
           {% else %}
-            unknown
+            {{ states('input_number.mural_bose_volume') | int(55) }}
           {% endif %}
 
 automation:

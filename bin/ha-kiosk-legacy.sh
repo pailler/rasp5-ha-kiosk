@@ -35,7 +35,7 @@ fi
 
 HA_BASE="${HA_URL:-http://192.168.1.51:8123}"
 HA_BASE="${HA_BASE%/}"
-PATH_VIEW="${KIOSK_LOVELACE_PATH:-/lovelace/ecranmural}"
+PATH_VIEW="${KIOSK_LOVELACE_PATH:-/lovelace/dashboard-principal}"
 SECOND_URL="${KIOSK_SECOND_URL:-}"
 LOG="${HOME}/kiosk.log"
 

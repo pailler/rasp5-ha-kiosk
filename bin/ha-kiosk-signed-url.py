@@ -16,7 +16,7 @@ except ImportError:
 HASS_URL = os.environ.get("HA_URL", "http://192.168.1.51:8123").rstrip("/")
 KIOSK_PATH = os.environ.get(
     "KIOSK_PATH",
-    os.environ.get("KIOSK_LOVELACE_PATH", "/lovelace/ecranmural"),
+    os.environ.get("KIOSK_LOVELACE_PATH", "/lovelace/dashboard-principal"),
 )
 if not KIOSK_PATH.startswith("/"):
     KIOSK_PATH = "/" + KIOSK_PATH

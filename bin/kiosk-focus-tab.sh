@@ -21,7 +21,7 @@ switch_to_url() {
 case "$TAB" in
   1)
     url="$(KIOSK_USE_LEGACY_TOKEN=1 HA_URL="${HA_URL:-http://192.168.1.51:8123}" \
-      KIOSK_PATH="${KIOSK_LOVELACE_PATH:-/lovelace/ecranmural}" \
+      KIOSK_PATH="${KIOSK_LOVELACE_PATH:-/lovelace/dashboard-principal}" \
       python3 "${HOME}/bin/ha-kiosk-signed-url.py" 2>/dev/null)" || true
     if [ -n "$url" ] && switch_to_url "$url"; then exit 0; fi
     ;;

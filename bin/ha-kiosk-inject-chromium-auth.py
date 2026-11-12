@@ -7,7 +7,9 @@ import os
 import sqlite3
 from pathlib import Path
 
-CHR_PROFILE = Path.home() / ".config" / "chromium-kiosk"
+CHR_PROFILE = Path(
+    os.environ.get("KIOSK_CHROMIUM_HA_PROFILE", str(Path.home() / ".config/chromium-ha-kiosk"))
+)
 FRONT = Path.home() / ".config" / "ha-frontend-tokens.json"
 HASS_URL = os.environ.get("HA_URL", "http://192.168.1.51:8123").rstrip("/")
 LS_DB = (
@@ -18,12 +20,37 @@ LS_DB = (
 )
 
 
-def payload_from_file() -> str | None:
-    if not FRONT.is_file():
+def payload_from_api_token() -> str | None:
+    api = Path.home() / ".config" / "ha-api-token"
+    if not api.is_file():
         return None
+    access = api.read_text(encoding="utf-8").strip().replace("\r", "").replace("\n", "")
+    if len(access) < 20:
+        return None
+    import time
+
+    expires = int(time.time() * 1000) + 31_536_000_000
+    data = {
+        "hassUrl": HASS_URL,
+        "clientId": f"{HASS_URL}/",
+        "access_token": access,
+        "refresh_token": "",
+        "expires": expires,
+        "expires_in": 31_536_000,
+    }
+    return json.dumps(data, separators=(",", ":"))
+
+
+def payload_from_file() -> str | None:
+    if os.environ.get("KIOSK_USE_LEGACY_TOKEN", "1") == "1":
+        p = payload_from_api_token()
+        if p:
+            return p
+    if not FRONT.is_file():
+        return payload_from_api_token()
     data = json.loads(FRONT.read_text(encoding="utf-8"))
     p = data.get("hassTokens")
-    return p if isinstance(p, str) and len(p) > 50 else None
+    return p if isinstance(p, str) and len(p) > 50 else payload_from_api_token()
 
 
 def inject_sqlite(db_path: Path, payload: str) -> None:

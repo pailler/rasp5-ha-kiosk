@@ -25,7 +25,10 @@ for try in 1 2 3 4 5; do
   [[ "$url" == *authSig=* ]] && break
   sleep 2
 done
-[ -z "$url" ] && url="${HA_BASE}${PATH_VIEW}"
+[ -z "$url" ] || [[ "$url" != *authSig=* ]] && {
+  echo "return-ha: authSig impossible $(date)" >>"$LOG"
+  exit 1
+}
 printf '%s\n' "$url" >"${HOME}/.cache/kiosk-last-ha-url"
 
 echo "return-ha: $PATH_VIEW $(date)" >>"$LOG"

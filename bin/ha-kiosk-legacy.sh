@@ -2,6 +2,9 @@
 # Mode d’origine : Firefox kiosk-profile, plein écran, authSig jeton long (ha-api-token).
 set -euo pipefail
 LOCK=/tmp/ha-kiosk-legacy.lock
+if ! pgrep -f "ha-kiosk-legacy\\.sh" >/dev/null 2>&1 && ! pgrep -x firefox-esr >/dev/null 2>&1; then
+  rm -f "$LOCK"
+fi
 exec 8>"$LOCK"
 flock -n 8 || exit 0
 
@@ -235,6 +238,13 @@ if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ]; then
     done
     echo "plein écran F11 (Wayland) $(date)" >>"$LOG"
   fi
+  for _pass in 1 2 3; do
+    sleep 3
+    pgrep -x firefox-esr >/dev/null || break
+    "${HOME}/bin/kiosk-focus-firefox-window.sh" 2>/dev/null || true
+    focus_ha_tab
+    "${HOME}/bin/kiosk-apply-fullscreen.sh" 2>/dev/null || true
+  done
   pgrep -af "firefox-esr.*kiosk-profile" | head -1 >>"$LOG"
   exit 0
 fi

@@ -70,6 +70,12 @@ for _ in $(seq 1 60); do
     echo "kiosque OK"
     touch "$STAMP"
     "${HOME}/bin/kiosk-apply-fullscreen.sh" 2>/dev/null || true
+    for delay in 45 120; do
+      (
+        sleep "$delay"
+        "${HOME}/bin/kiosk-recover-display.sh" || true
+      ) &
+    done
     exit 0
   fi
   sleep 2

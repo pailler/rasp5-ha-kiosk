@@ -48,6 +48,7 @@ apply_f11() {
       echo "plein écran (--kiosk) déjà actif $(date)" >>"$LOG"
       exit 0
     fi
+    "${HOME}/bin/kiosk-focus-firefox-window.sh" 2>/dev/null || true
     case "$MODE" in
       f11)
         apply_f11
@@ -58,5 +59,6 @@ apply_f11() {
         echo "plein écran Wayfire (règles + maximize) $(date)" >>"$LOG"
         ;;
     esac
+    "${HOME}/bin/kiosk-focus-tab.sh" 1 2>/dev/null || true
   done
 ) &

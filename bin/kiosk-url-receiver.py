@@ -34,13 +34,18 @@ def authorized(handler: BaseHTTPRequestHandler, token: str) -> bool:
 
 
 def valid_youtube_url(url: str) -> bool:
-    return bool(
-        re.match(
-            r"^https?://([a-z0-9-]+\.)?(youtube\.com|youtu\.be)/",
-            url,
-            re.I,
-        )
-    )
+    if not re.match(
+        r"^https?://([a-z0-9-]+\.)?(youtube\.com|youtu\.be)/",
+        url,
+        re.I,
+    ):
+        return False
+    if re.search(r"youtu\.be/", url, re.I):
+        return len(url.split("youtu.be/", 1)[-1].split("?")[0].strip("/")) >= 6
+    if "list=" in url:
+        return True
+    m = re.search(r"[?&]v=([^&]+)", url, re.I)
+    return bool(m and len(m.group(1)) >= 6)
 
 
 class KioskHandler(BaseHTTPRequestHandler):
@@ -119,7 +124,7 @@ class KioskHandler(BaseHTTPRequestHandler):
                 [OPEN_SCRIPT, url],
                 env=env,
                 check=True,
-                timeout=30,
+                timeout=60,
             )
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
             self._json(502, {"error": "firefox_failed", "detail": str(e)})

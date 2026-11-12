@@ -12,22 +12,16 @@ export WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-1}"
 
 pgrep -x firefox-esr >/dev/null || exit 1
 
-switch_to_url() {
-  local url="$1"
-  [ -z "$url" ] && return 1
-  /usr/bin/firefox-esr --profile "$PROFILE" "$url" 2>/dev/null
-}
-
 case "$TAB" in
   1)
-    url="$(KIOSK_USE_LEGACY_TOKEN=1 HA_URL="${HA_URL:-http://192.168.1.51:8123}" \
-      KIOSK_PATH="${KIOSK_LOVELACE_PATH:-/lovelace/dashboard-principal}" \
-      python3 "${HOME}/bin/ha-kiosk-signed-url.py" 2>/dev/null)" || true
-    if [ -n "$url" ] && switch_to_url "$url"; then exit 0; fi
+    /usr/bin/firefox-esr --profile "$PROFILE" -remote \
+      "javascript:(function(){var w=Services.wm.getMostRecentBrowserWindow();if(w&&w.gBrowser&&w.gBrowser.tabs[0])w.gBrowser.selectedTab=w.gBrowser.tabs[0];})();" 2>/dev/null || true
+    command -v wtype >/dev/null 2>&1 && wtype -M ctrl -k 1 2>/dev/null || true
+    exit 0
     ;;
   2)
-    if [ -n "${KIOSK_SECOND_URL:-}" ] && switch_to_url "$KIOSK_SECOND_URL"; then
-      exit 0
+    if [ -n "${KIOSK_SECOND_URL:-}" ]; then
+      "${HOME}/bin/kiosk-open-tab2-url.sh" "$KIOSK_SECOND_URL" 2>/dev/null && exit 0
     fi
     ;;
 esac

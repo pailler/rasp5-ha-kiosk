@@ -1,5 +1,5 @@
 #!/bin/bash
-# Ouvre une URL (YouTube, etc.) dans l’onglet 2 Firefox kiosque et affiche cet onglet.
+# Ouvre une URL YouTube dans l’onglet 2 Firefox kiosque et affiche cet onglet.
 set -euo pipefail
 . "$(dirname "$0")/kiosk-session-env.sh"
 CONF="${HOME}/.config/ha-kiosk.env"
@@ -16,54 +16,69 @@ export WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-1}"
 
 pgrep -x firefox-esr >/dev/null || { echo "Firefox inactif" >&2; exit 1; }
 
-python3 - "$URL" "$PROFILE" <<'PY'
-import json
-import subprocess
-import sys
-import re
-
-url, profile = sys.argv[1], sys.argv[2]
-if not re.match(
-    r"^https?://([a-z0-9-]+\.)?(youtube\.com|youtu\.be)/", url, re.I
-):
-    print("URL YouTube requise (youtube.com ou youtu.be)", file=sys.stderr)
+if ! python3 - "$URL" <<'PY'
+import re, sys
+url = sys.argv[1]
+if not re.match(r"^https?://([a-z0-9-]+\.)?(youtube\.com|youtu\.be)/", url, re.I):
     sys.exit(2)
+if re.search(r"youtube\.com/watch", url, re.I) and "v=" not in url and "list=" not in url:
+    sys.exit(3)
+PY
+then
+  echo "URL YouTube invalide ou incomplète (ajoutez v= ou list=)" >&2
+  exit 2
+fi
 
-js = (
+remote_ok() {
+  local msg="$1"
+  [ -n "$msg" ] && ! echo "$msg" | grep -qiE 'failed|error|cannot'
+}
+
+firefox_remote() {
+  if command -v timeout >/dev/null 2>&1; then
+    timeout 8 /usr/bin/firefox-esr --profile "$PROFILE" -remote "$1" 2>&1 || true
+  else
+    /usr/bin/firefox-esr --profile "$PROFILE" -remote "$1" 2>&1 || true
+  fi
+}
+
+# 1) Charger YouTube dans l’onglet 2 (pas un nouvel onglet 3+)
+JS_LOAD=$(
+  python3 - "$URL" <<'PY'
+import json, sys
+u = json.dumps(sys.argv[1])
+print(
     "javascript:(function(){"
-    f"var u={json.dumps(url)};"
+    f"var u={u};"
     "var w=Services.wm.getMostRecentBrowserWindow();"
     "if(!w||!w.gBrowser)return;"
     "var g=w.gBrowser;"
     "while(g.tabs.length<2)g.addTrustedTab('about:blank');"
-    "g.tabs[1].linkedBrowser.loadURI(u);"
-    "g.selectedTab=g.tabs[1];"
+    "var t=g.tabs[1];"
+    "t.linkedBrowser.loadURI(u,{triggeringPrincipal:Services.scriptSecurityManager.getSystemPrincipal()});"
+    "g.selectedTab=t;"
     "})();"
 )
-
-cmd = [
-    "/usr/bin/firefox-esr",
-    "--profile",
-    profile,
-    "-remote",
-    js,
-]
-r = subprocess.run(cmd, capture_output=True, text=True)
-if r.returncode != 0:
-    fallback = [
-        "/usr/bin/firefox-esr",
-        "--profile",
-        profile,
-        "-new-tab",
-        url,
-    ]
-    subprocess.run(fallback, check=False)
-    import os
-
-    subprocess.run(
-        [os.path.expanduser("~/bin/kiosk-focus-tab.sh"), "2"],
-        check=False,
-    )
 PY
+)
+
+out="$(firefox_remote "$JS_LOAD" || true)"
+if ! remote_ok "$out"; then
+  echo "remote JS échec, repli openURL" >>"$LOG"
+  out="$(firefox_remote "openURL(${URL},new-tab)" || true)"
+  if ! remote_ok "$out"; then
+    /usr/bin/firefox-esr --profile "$PROFILE" -new-tab "$URL" 2>/dev/null || true
+  fi
+  sleep 0.6
+  firefox_remote "javascript:(function(){var w=Services.wm.getMostRecentBrowserWindow();if(w&&w.gBrowser&&w.gBrowser.tabs[1])w.gBrowser.selectedTab=w.gBrowser.tabs[1];})();" >/dev/null 2>&1 || true
+fi
+
+sleep 0.4
+if command -v wtype >/dev/null 2>&1; then
+  for _ in 1 2; do
+    wtype -M ctrl -k 2 2>/dev/null || true
+    sleep 0.25
+  done
+fi
 
 echo "onglet 2 YouTube: $URL ($(date))" >>"$LOG"

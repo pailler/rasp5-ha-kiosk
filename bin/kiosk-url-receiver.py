@@ -7,6 +7,7 @@ import os
 import re
 import subprocess
 import sys
+import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HOST = os.environ.get("KIOSK_HTTP_HOST", "0.0.0.0")
@@ -84,6 +85,31 @@ class KioskHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         if self.path.rstrip("/") == "/health":
             self._json(200, {"ok": True})
+            return
+        parsed = urllib.parse.urlparse(self.path)
+        if parsed.path.rstrip("/") == "/youtube":
+            q = urllib.parse.parse_qs(parsed.query)
+            vid = (q.get("v") or [""])[0].strip()
+            if len(vid) < 6:
+                self._json(400, {"error": "missing_v"})
+                return
+            mute = (q.get("mute") or [""])[0] in ("1", "true", "yes")
+            qs = "autoplay=1&rel=0&playsinline=1&modestbranding=1"
+            if mute:
+                qs += "&mute=1"
+            embed = f"https://www.youtube-nocookie.com/embed/{urllib.parse.quote(vid, safe='')}?{qs}"
+            body = (
+                "<!DOCTYPE html><html><head><meta charset=utf-8>"
+                "<meta name=viewport content=\"width=device-width,initial-scale=1\">"
+                "<style>html,body{margin:0;height:100%;background:#000}iframe{border:0;width:100%;height:100%}</style>"
+                f"</head><body><iframe allow=\"autoplay;fullscreen\" allowfullscreen "
+                f'src="{embed}"></iframe></body></html>'
+            ).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
             return
         self._json(404, {"error": "not_found"})
 

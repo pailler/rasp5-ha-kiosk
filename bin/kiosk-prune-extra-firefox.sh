@@ -3,26 +3,18 @@
 set -uo pipefail
 LOG="${HOME}/kiosk.log"
 
-mapfile -t lines < <(pgrep -af 'firefox-esr.*kiosk-profile.*--no-remote' 2>/dev/null || true)
-n=${#lines[@]}
+mapfile -t pids < <("$(dirname "$0")/kiosk-list-main-firefox.sh")
+n=${#pids[@]}
 [ "$n" -le 1 ] && exit 0
 
-keep_pid=""
-for line in "${lines[@]}"; do
-  pid=${line%% *}
-  [ -n "$pid" ] && keep_pid=$pid && break
-done
-[ -z "$keep_pid" ] && exit 0
-
-echo "prune: ${n} Firefox kiosque → garde PID ${keep_pid} $(date)" >>"$LOG"
-for line in "${lines[@]}"; do
-  pid=${line%% *}
-  [ "$pid" = "$keep_pid" ] && continue
+keep="${pids[0]}"
+echo "prune: ${n} Firefox kiosque → garde PID ${keep} $(date)" >>"$LOG"
+for pid in "${pids[@]}"; do
+  [ "$pid" = "$keep" ] && continue
   kill -TERM "$pid" 2>/dev/null || true
 done
 sleep 2
-for line in "${lines[@]}"; do
-  pid=${line%% *}
-  [ "$pid" = "$keep_pid" ] && continue
+for pid in "${pids[@]}"; do
+  [ "$pid" = "$keep" ] && continue
   kill -9 "$pid" 2>/dev/null || true
 done

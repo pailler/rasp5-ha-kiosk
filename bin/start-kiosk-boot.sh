@@ -6,6 +6,9 @@ exec 9>"$LOCK"
 flock -n 9 || exit 0
 
 LOG="${HOME}/kiosk.log"
+if [ -f "$LOG" ] && grep -q $'\0' "$LOG" 2>/dev/null; then
+  mv -f "$LOG" "${LOG}.bak.$(date +%s)" 2>/dev/null || true
+fi
 exec >>"$LOG" 2>&1
 echo "=== start-kiosk-boot $(date) ==="
 
@@ -66,18 +69,30 @@ else
   nohup "${HOME}/bin/ha-meteo-kiosk.sh" </dev/null >>"$LOG" 2>&1 &
 fi
 
-for _ in $(seq 1 60); do
-  if "${HOME}/bin/kiosk-browser-active.sh"; then
-    echo "kiosque OK"
-    touch "$STAMP"
-    "${HOME}/bin/kiosk-apply-fullscreen.sh" 2>/dev/null || true
-    (
-      sleep 120
-      pgrep -x firefox-esr >/dev/null && "${HOME}/bin/kiosk-nudge-ha.sh" || "${HOME}/bin/kiosk-recover-display.sh"
-    ) &
-    exit 0
+for _ in $(seq 1 90); do
+  if ! "${HOME}/bin/kiosk-browser-active.sh"; then
+    sleep 2
+    continue
   fi
-  sleep 2
+  if [ -x "${HOME}/bin/kiosk-wait-firefox-remote.sh" ]; then
+    "${HOME}/bin/kiosk-wait-firefox-remote.sh" 15 2 >/dev/null || { sleep 2; continue; }
+  fi
+  sleep 5
+  "${HOME}/bin/kiosk-browser-active.sh" || { sleep 2; continue; }
+  if [ -x "${HOME}/bin/kiosk-prune-extra-firefox.sh" ]; then
+    "${HOME}/bin/kiosk-prune-extra-firefox.sh" || true
+    sleep 1
+  fi
+  n=$("${HOME}/bin/kiosk-list-main-firefox.sh" 2>/dev/null | wc -l)
+  [ "$n" -ge 1 ] || { sleep 2; continue; }
+  echo "kiosque OK (instances=${n})"
+  touch "$STAMP"
+  "${HOME}/bin/kiosk-apply-fullscreen.sh" 2>/dev/null || true
+  (
+    sleep 120
+    pgrep -x firefox-esr >/dev/null && "${HOME}/bin/kiosk-nudge-ha.sh" || "${HOME}/bin/kiosk-recover-display.sh"
+  ) &
+  exit 0
 done
 
 echo "échec final kiosque (un seul lancement)"

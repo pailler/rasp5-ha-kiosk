@@ -44,7 +44,7 @@ echo "=== doctor $(date) ===" >>"$LOG"
 
 for wait in 15 25 35; do
   sleep "$wait"
-  n=$(pgrep -af 'firefox-esr.*kiosk-profile.*--no-remote' 2>/dev/null | wc -l)
+  n=$("${HOME}/bin/kiosk-list-main-firefox.sh" 2>/dev/null | wc -l)
   echo "firefox_instances=${n} (après ${wait}s)"
   [ "$n" -ge 1 ] && break
 done
@@ -61,4 +61,4 @@ fi
 "${HOME}/bin/kiosk-focus-tab.sh" 1 2>/dev/null || true
 n=$(pgrep -af 'firefox-esr.*kiosk-profile.*--no-remote' 2>/dev/null | wc -l)
 echo "OK: firefox_instances=${n}"
-pgrep -af 'firefox-esr.*kiosk-profile.*--no-remote' | head -3
+ps -C firefox-esr -o pid=,args= | grep 'kiosk-profile.*--no-remote' | head -3

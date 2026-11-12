@@ -161,7 +161,7 @@ pkill -x onboard 2>/dev/null || true
 echo "=== ha-kiosk-legacy $(date) wayland=$KIOSK_FIREFOX_WAYLAND === URL=$URL" >>"$LOG"
 
 FF_CMD=(/usr/bin/firefox-esr --no-remote --profile "$PROFILE" --start-maximized)
-FULLSCREEN_MODE="${KIOSK_FULLSCREEN:-maximize}"
+FULLSCREEN_MODE="${KIOSK_FULLSCREEN:-fullscreen}"
 
 "${FF_CMD[@]}" "$URL" &
 if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ]; then
@@ -173,7 +173,7 @@ if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ]; then
         command -v wtype >/dev/null 2>&1 && wtype -k F11 2>/dev/null || true
       ) &
       ;;
-    maximize|*)
+    maximize|fullscreen|*)
       ensure_wayland_maximize_once
       ;;
   esac
@@ -212,7 +212,7 @@ for _ in $(seq 1 25); do
 done
 [ -z "$WID" ] && exit 1
 
-FULLSCREEN_MODE="${KIOSK_FULLSCREEN:-maximize}"
+FULLSCREEN_MODE="${KIOSK_FULLSCREEN:-fullscreen}"
 
 for _ in 1 2 3 4 5; do
   xdotool windowmove --sync "$WID" 0 0 2>/dev/null || true

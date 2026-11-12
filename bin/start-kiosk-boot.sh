@@ -1,5 +1,5 @@
 #!/bin/bash
-# Attente réseau + HA puis lance ha-meteo-kiosk (Chromium / Firefox + auth).
+# Un seul lancement Firefox kiosque par session (pas de boucle / pas de 2ᵉ ha-kiosk).
 set -euo pipefail
 LOCK=/tmp/start-kiosk-boot.lock
 exec 9>"$LOCK"
@@ -13,76 +13,65 @@ echo "=== start-kiosk-boot $(date) ==="
 CONF="${HOME}/.config/ha-kiosk.env"
 [ -r "$CONF" ] && . "$CONF"
 
+STAMP="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/kiosk-boot-once"
+if [ -f "$STAMP" ]; then
+  echo "kiosque déjà initialisé cette session"
+  exit 0
+fi
+
 HA_BASE="${HA_URL:-http://192.168.1.51:8123}"
 HA_BASE="${HA_BASE%/}"
 
-for _ in $(seq 1 120); do
-  [ -S "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/${WAYLAND_DISPLAY:-wayland-1}" ] \
-    && [ -S /tmp/.X11-unix/X0 ] && break
+for _ in $(seq 1 90); do
+  if [ -n "${WAYLAND_DISPLAY:-}" ] || [ -S /tmp/.X11-unix/X0 ] 2>/dev/null; then
+    break
+  fi
   sleep 1
 done
 export DISPLAY="${DISPLAY:-:0}"
 
 if "${HOME}/bin/kiosk-browser-active.sh"; then
-  echo "navigateur kiosque déjà actif"
+  echo "Firefox déjà actif"
+  touch "$STAMP"
   exit 0
 fi
 
-ha_reachable() {
-  local code
-  code="$(curl -o /dev/null -sS --max-time 4 -w "%{http_code}" "${HA_BASE}/" 2>/dev/null)" || return 1
+if pgrep -f "ha-kiosk-legacy\\.sh" >/dev/null 2>&1; then
+  echo "ha-kiosk-legacy déjà en cours — attente"
+  for _ in $(seq 1 90); do
+    if "${HOME}/bin/kiosk-browser-active.sh"; then
+      touch "$STAMP"
+      exit 0
+    fi
+    sleep 2
+  done
+fi
+
+for _ in $(seq 1 45); do
+  code="$(curl -o /dev/null -sS --max-time 4 -w "%{http_code}" "${HA_BASE}/" 2>/dev/null)" || code=0
   case "$code" in
-    200|301|302|401|404) return 0 ;;
-    *) return 1 ;;
+    200|301|302|401|404) echo "HA joignable ($code)"; break ;;
   esac
-}
+  sleep 2
+done
+
+pkill -x onboard 2>/dev/null || true
+
+if [ "${KIOSK_LEGACY:-0}" = "1" ]; then
+  "${HOME}/bin/ha-kiosk-legacy.sh"
+else
+  "${HOME}/bin/ha-meteo-kiosk.sh"
+fi
 
 for _ in $(seq 1 60); do
-  if ha_reachable; then
-    echo "HA joignable (http ${code:-?})"
-    break
+  if "${HOME}/bin/kiosk-browser-active.sh"; then
+    echo "kiosque OK"
+    touch "$STAMP"
+    "${HOME}/bin/kiosk-apply-fullscreen.sh" 2>/dev/null || true
+    exit 0
   fi
   sleep 2
 done
 
-SECOND_BOOT_URL="${KIOSK_SECOND_URL:-}"
-if [ -n "$SECOND_BOOT_URL" ]; then
-  for _ in $(seq 1 30); do
-    code2=$(curl -o /dev/null -sS --max-time 6 -w "%{http_code}" "$SECOND_BOOT_URL" 2>/dev/null) || code2=0
-    case "$code2" in
-      200|301|302|403) echo "2e URL joignable ($code2)"; break ;;
-    esac
-    sleep 2
-  done
-fi
-sleep 3
-
-pkill -x onboard 2>/dev/null || true
-
-for attempt in 1 2 3; do
-  if [ "${KIOSK_LEGACY:-0}" = "1" ]; then
-  "${HOME}/bin/ha-kiosk-legacy.sh" || true
-else
-  "${HOME}/bin/ha-meteo-kiosk.sh" || true
-fi
-  sleep 30
-  if "${HOME}/bin/kiosk-browser-active.sh"; then
-    echo "kiosque OK (tentative $attempt)"
-    break
-  fi
-  echo "échec lancement kiosque tentative $attempt"
-  pkill -x firefox-esr 2>/dev/null || true
-  pkill -x chromium 2>/dev/null || true
-  sleep 3
-  if [ "${KIOSK_LEGACY:-0}" = "1" ]; then
-    "${HOME}/bin/ha-kiosk-legacy.sh" || true
-  else
-    "${HOME}/bin/ha-meteo-kiosk.sh" || true
-  fi
-done
-if "${HOME}/bin/kiosk-browser-active.sh"; then
-  pgrep -af "firefox-esr|chromium.*8123" | head -3
-  "${HOME}/bin/kiosk-apply-fullscreen.sh" 2>/dev/null || true
-else
-  echo "échec final kiosque"
-fi
+echo "échec final kiosque (un seul lancement)"
+exit 1

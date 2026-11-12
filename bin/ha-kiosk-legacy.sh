@@ -189,8 +189,10 @@ if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ] && [ "$FULLSCREEN_MODE" != "0" ] && [ "$FU
   "${HOME}/bin/kiosk-apply-fullscreen.sh" 2>/dev/null || true
 fi
 
-sleep 22
+sleep 8
 pgrep -f hide-desktop-loop >/dev/null || "${HOME}/bin/hide-desktop-loop.sh" &
+
+wait_firefox_ready || true
 
 if [ -n "$SECOND_URL" ]; then
   open_second_tab_background "$SECOND_URL"
@@ -199,6 +201,8 @@ else
   ensure_youtube_tab_slot
   echo "2e onglet réservé YouTube (about:blank)" >>"$LOG"
 fi
+
+focus_ha_tab
 
 if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ]; then
   if [ "$FULLSCREEN_MODE" = "f11" ]; then

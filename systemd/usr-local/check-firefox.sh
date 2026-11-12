@@ -8,7 +8,9 @@ HOUR=$(date +%H); HOUR=$((10#$HOUR))
 [ "$HOUR" -ge 1 ] && [ "$HOUR" -lt 7 ] && exit 0
 [ -f /tmp/ha-kiosk-legacy.lock ] && exit 0
 uptime_s=$(awk '{print int($1)}' /proc/uptime)
-[ "$uptime_s" -lt 600 ] && exit 0
+[ "$uptime_s" -lt 1200 ] && exit 0
+STAMP="/run/user/${KIOSK_UID}/kiosk-boot-once"
+[ ! -f "$STAMP" ] && exit 0
 pgrep -u "${KIOSK_USER}" -x firefox-esr >/dev/null 2>&1 && exit 0
 pgrep -u "${KIOSK_USER}" -f ha-kiosk-legacy >/dev/null 2>&1 && exit 0
 logger "Kiosque HA absent - relance (user ${KIOSK_USER})"

@@ -10,7 +10,12 @@ CONF="${HOME}/.config/ha-kiosk.env"
 [ -r "$CONF" ] && . "$CONF"
 
 FULLSCREEN_MODE="${KIOSK_FULLSCREEN:-fullscreen}"
-# kiosk + X11 : vrai plein écran (--kiosk Wayland = écran noir sur Pi 5)
+# --kiosk : écran noir fréquent sur Pi 5 (Wayland ou X11) ; ignorer si KIOSK_ALLOW_KIOSK!=1
+if [ "$FULLSCREEN_MODE" = "kiosk" ] && [ "${KIOSK_ALLOW_KIOSK:-0}" != "1" ]; then
+  echo "KIOSK_FULLSCREEN=kiosk désactivé (écran noir) → fullscreen" >>"${HOME}/kiosk.log"
+  FULLSCREEN_MODE=fullscreen
+  KIOSK_FULLSCREEN=fullscreen
+fi
 if [ "$FULLSCREEN_MODE" = "kiosk" ] && [ "${KIOSK_KIOSK_USE_X11:-1}" = "1" ]; then
   KIOSK_FIREFOX_WAYLAND=0
 fi

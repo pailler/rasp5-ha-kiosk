@@ -214,13 +214,14 @@ if [ -x "${HOME}/bin/kiosk-firefox-launch-once.sh" ]; then
 else
   nohup "${FF_CMD[@]}" "$URL" </dev/null >>"$LOG" 2>&1 &
 fi
-if ! wait_firefox_ready; then
-  echo "repli lancement Firefox direct $(date)" >>"$LOG"
-  nohup "${FF_CMD[@]}" "$URL" </dev/null >>"$LOG" 2>&1 &
-  sleep 6
+if ! "${HOME}/bin/kiosk-wait-firefox-process.sh" 40 2; then
+  if ! "${HOME}/bin/kiosk-firefox-kiosk-running.sh"; then
+    echo "repli lancement Firefox direct $(date)" >>"$LOG"
+    nohup "${FF_CMD[@]}" "$URL" </dev/null >>"$LOG" 2>&1 &
+    "${HOME}/bin/kiosk-wait-firefox-process.sh" 30 2 || true
+  fi
 fi
-sleep 8
-"${HOME}/bin/kiosk-ensure-ha-url.sh" 2>/dev/null || true
+sleep 5
 pgrep -f hide-desktop-loop >/dev/null || "${HOME}/bin/hide-desktop-loop.sh" &
 
 wait_firefox_ready || true

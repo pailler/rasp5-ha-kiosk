@@ -49,10 +49,15 @@ PY
   fi
 fi
 
-"${HOME}/bin/kiosk-wtype-goto-url.sh" "$url" && {
+if "${HOME}/bin/kiosk-wtype-goto-url.sh" "$url"; then
   echo "ensure-ha-url: wtype $(date)" >>"$LOG"
   exit 0
-}
+fi
+
+if "${HOME}/bin/kiosk-firefox-kiosk-running.sh"; then
+  echo "ensure-ha-url: Firefox actif, wtype KO — on ne tue pas $(date)" >>"$LOG"
+  exit 0
+fi
 
 echo "ensure-ha-url: relance propre avec URL $(date)" >>"$LOG"
 pkill -f 'firefox-esr.*kiosk-profile' 2>/dev/null || true

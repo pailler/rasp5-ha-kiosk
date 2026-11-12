@@ -40,9 +40,12 @@ PY
   echo "navigate: embed → YouTube direct $(date)" >>"$LOG"
 fi
 if [[ "$PATH_REL" == /lovelace/* ]]; then
-  signed="$(KIOSK_USE_LEGACY_TOKEN=1 HA_URL="$HA_BASE" KIOSK_PATH="$PATH_REL" \
-    python3 "${HOME}/bin/ha-kiosk-signed-url.py" 2>>"$LOG")" || signed=""
-  [[ "$signed" == *authSig=* ]] && target="$signed"
+  if "${HOME}/bin/kiosk-return-ha.sh" "$PATH_REL"; then
+    echo "navigate: return-ha ${PATH_REL} $(date)" >>"$LOG"
+    exit 0
+  fi
+  echo "navigate échec return-ha: ${PATH_REL} $(date)" >>"$LOG"
+  exit 1
 fi
 
 if "${HOME}/bin/kiosk-firefox-goto-url.sh" "$target"; then

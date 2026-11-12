@@ -10,7 +10,7 @@ HA_BASE="${HA_URL:-http://192.168.1.51:8123}"
 HA_BASE="${HA_BASE%/}"
 PATH_VIEW="${KIOSK_LOVELACE_PATH:-/lovelace/dashboard-principal}"
 
-"${HOME}/bin/kiosk-firefox-kiosk-running.sh" || exit 1
+pkill -x chromium 2>/dev/null || true
 
 url=""
 for try in 1 2 3; do

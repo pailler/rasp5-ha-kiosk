@@ -37,8 +37,11 @@ esac
 
 CONF="${HOME}/.config/ha-kiosk.env"
 [ -r "$CONF" ] && . "$CONF"
-mode="${KIOSK_YOUTUBE_MODE:-embed-direct}"
+mode="${KIOSK_YOUTUBE_MODE:-embed-page}"
 
+if [[ "$src" == *"/youtube?"* ]] || [[ "$src" == *"/youtube?v="* ]]; then
+  page="$src"
+else
 embed_qs="autoplay=1&playsinline=1&rel=0&modestbranding=1&fs=1"
 [ "$mute" -eq 1 ] && embed_qs="${embed_qs}&mute=1"
 
@@ -52,6 +55,7 @@ elif [ "$mode" = "watch" ]; then
   [ "$mute" -eq 1 ] && page="${page}&mute=1"
 else
   page="https://www.youtube-nocookie.com/embed/${vid}?${embed_qs}"
+fi
 fi
 
 export DISPLAY="${DISPLAY:-:0}"

@@ -18,6 +18,9 @@ case "$url" in
   *youtube.com*|*youtu.be*|*mural-youtube-embed*|*youtube-nocookie*|file://*/kiosk-youtube-page.html*)
     is_youtube=1
     ;;
+  */youtube?*|*/youtube\?*)
+    is_youtube=1
+    ;;
 esac
 
 if [ "$is_youtube" -eq 1 ] && [ "$KIOSK_YOUTUBE_USE_CHROMIUM" = "1" ]; then

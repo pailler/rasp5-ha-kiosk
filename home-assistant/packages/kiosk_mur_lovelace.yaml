@@ -52,7 +52,7 @@ script:
           navigate_url: >-
             https://www.youtube.com/watch?v={{ youtube_id }}{% if bose_audio %}&mute=1{% endif %}
           navigate_embed_url: >-
-            https://www.youtube-nocookie.com/embed/{{ youtube_id }}?autoplay=1&playsinline=1&rel=0{% if bose_audio %}&mute=1{% endif %}
+            http://127.0.0.1:8765/youtube?v={{ youtube_id }}{% if bose_audio %}&mute=1{% endif %}
           path_yt: >-
             {% set base = states('input_text.mural_lovelace_path_youtube') | trim %}
             {{ base }}?v={{ youtube_id }}{% if bose_audio %}&mute=1{% endif %}

@@ -103,7 +103,9 @@ class KioskHandler(BaseHTTPRequestHandler):
             )
             if mute:
                 qs += "&mute=1"
-            embed = f"https://www.youtube.com/embed/{urllib.parse.quote(vid, safe='')}?{qs}"
+            embed = (
+                f"https://www.youtube-nocookie.com/embed/{urllib.parse.quote(vid, safe='')}?{qs}"
+            )
             body = (
                 "<!DOCTYPE html><html><head><meta charset=utf-8>"
                 "<meta name=viewport content=\"width=device-width,initial-scale=1\">"

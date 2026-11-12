@@ -1,6 +1,10 @@
 # YouTube sur l’onglet 2 (bouton Lovelace)
 
-Permet de coller une URL **YouTube** (vidéo ou playlist) dans Home Assistant et de la lancer sur le **2ᵉ onglet Firefox** du Pi mural, sans quitter le kiosque.
+Permet de coller une URL **YouTube** dans Home Assistant et de la lancer sur le **2ᵉ onglet** du **même Firefox** kiosque (onglet 1 = Home Assistant). On ne lance jamais un second navigateur : uniquement `-remote` sur l’instance démarrée par `ha-kiosk-legacy.sh` (`--no-remote`).
+
+Au boot, l’onglet 2 est créé vide (`about:blank`) et on reste sur l’onglet 1. Le bouton HA charge YouTube **dans l’onglet 2** puis bascule dessus.
+
+Option **Bose** : même vidéo (Chromecast pour le son, vidéo muette sur le mur) — ce n’est pas un 2ᵉ lecteur web sur le Pi.
 
 ## 1. Pi (`rasp5`)
 

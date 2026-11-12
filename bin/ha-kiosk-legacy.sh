@@ -131,11 +131,14 @@ open_second_tab_background() {
   local url="$1"
   [ -z "$url" ] && return 0
   wait_firefox_ready || true
-  firefox_focus_window 2>/dev/null || true
-  if ! /usr/bin/firefox-esr --profile "$PROFILE" -remote "openURL(${url},new-background-tab)" 2>/dev/null; then
-    /usr/bin/firefox-esr --profile "$PROFILE" -new-tab "$url" 2>/dev/null || true
-  fi
+  /usr/bin/firefox-esr --profile "$PROFILE" -remote "openURL(${url},new-background-tab)" 2>/dev/null || true
   sleep 1
+  focus_ha_tab
+}
+
+ensure_youtube_tab_slot() {
+  wait_firefox_ready || return 0
+  "${HOME}/bin/kiosk-ensure-two-tabs.sh" 2>/dev/null || true
   focus_ha_tab
 }
 
@@ -192,7 +195,9 @@ pgrep -f hide-desktop-loop >/dev/null || "${HOME}/bin/hide-desktop-loop.sh" &
 if [ -n "$SECOND_URL" ]; then
   open_second_tab_background "$SECOND_URL"
   echo "2e onglet (arrière-plan): $SECOND_URL" >>"$LOG"
-  focus_ha_tab
+else
+  ensure_youtube_tab_slot
+  echo "2e onglet réservé YouTube (about:blank)" >>"$LOG"
 fi
 
 if [ "$KIOSK_FIREFOX_WAYLAND" = "1" ]; then

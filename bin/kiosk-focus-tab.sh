@@ -22,11 +22,7 @@ case "$TAB" in
     fi
     exit 0
     ;;
-  2)
-    if [ -n "${KIOSK_SECOND_URL:-}" ]; then
-      "${HOME}/bin/kiosk-open-tab2-url.sh" "$KIOSK_SECOND_URL" 2>/dev/null && exit 0
-    fi
-    ;;
+  2) ;;
 esac
 
 if [ -x "${HOME}/bin/kiosk-show-tab.sh" ]; then

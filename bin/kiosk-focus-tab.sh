@@ -17,6 +17,9 @@ case "$TAB" in
     /usr/bin/firefox-esr --profile "$PROFILE" -remote \
       "javascript:(function(){var w=Services.wm.getMostRecentBrowserWindow();if(w&&w.gBrowser&&w.gBrowser.tabs[0])w.gBrowser.selectedTab=w.gBrowser.tabs[0];})();" 2>/dev/null || true
     command -v wtype >/dev/null 2>&1 && wtype -M ctrl -k 1 2>/dev/null || true
+    if command -v pactl >/dev/null 2>&1; then
+      pactl set-sink-mute @DEFAULT_SINK@ 0 2>/dev/null || true
+    fi
     exit 0
     ;;
   2)

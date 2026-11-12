@@ -7,6 +7,9 @@ cards:
     entity: input_text.mural_youtube_url
     name: Lien vidéo ou playlist
     icon: mdi:link-variant
+  - type: entity
+    entity: input_boolean.mural_youtube_audio_bose
+    name: Son sur la Bose (vidéo muette sur le mur)
   - type: button
     name: Lancer sur le mur (onglet 2)
     icon: mdi:youtube

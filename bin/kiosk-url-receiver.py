@@ -112,6 +112,8 @@ class KioskHandler(BaseHTTPRequestHandler):
             self._json(400, {"error": "invalid_youtube_url"})
             return
 
+        mute_local = bool(data.get("mute_local"))
+
         env = os.environ.copy()
         env.setdefault("DISPLAY", ":0")
         env.setdefault("WAYLAND_DISPLAY", "wayland-1")
@@ -119,6 +121,8 @@ class KioskHandler(BaseHTTPRequestHandler):
             "XDG_RUNTIME_DIR",
             f"/run/user/{os.getuid()}",
         )
+        if mute_local:
+            env["KIOSK_MUTE_LOCAL"] = "1"
         try:
             subprocess.run(
                 [OPEN_SCRIPT, url],

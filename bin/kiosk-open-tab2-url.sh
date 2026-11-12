@@ -81,4 +81,16 @@ if command -v wtype >/dev/null 2>&1; then
   done
 fi
 
+set_local_mute() {
+  if ! command -v pactl >/dev/null 2>&1; then
+    return 0
+  fi
+  pactl set-sink-mute @DEFAULT_SINK@ "$1" 2>/dev/null || true
+}
+
+if [ "${KIOSK_MUTE_LOCAL:-0}" = "1" ]; then
+  set_local_mute 1
+  echo "audio local Pi coupé (Bose)" >>"$LOG"
+fi
+
 echo "onglet 2 YouTube: $URL ($(date))" >>"$LOG"

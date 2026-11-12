@@ -49,7 +49,11 @@ Adapter si besoin l’IP du Pi dans `rest_command` (`192.168.1.56`).
 Dans la vue **ecranmural** (ou autre), ajouter une carte : coller le contenu de  
 `home-assistant/lovelace/mural-youtube-card.yaml` (éditeur YAML).
 
-Utilisation : saisir l’URL dans le champ → **Lancer sur le mur (onglet 2)**.
+Utilisation : saisir l’URL dans le champ → activer **Audio sur la Bose** si besoin → **Lancer sur le mur (onglet 2)**.
+
+Avec **Audio sur la Bose** activé : la vidéo s’affiche sur le mur (onglet 2 Firefox, muet), le son part sur l’enceinte via Chromecast (`media_player.musique_bose_2`, type `youtube`). La multiprise Chromecast est allumée automatiquement si besoin.
+
+Revenir à l’onglet HA (`Revenir à Home Assistant`) réactive le son du Pi.
 
 ## 4. Retour onglet HA
 

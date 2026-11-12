@@ -24,7 +24,8 @@ pkill -9 -f 'firefox-esr.*kiosk-profile' 2>/dev/null || pkill -9 -x firefox-esr 
 sleep 1
 
 CHR=chromium
-read -r -a CHR_EXTRA <<<"${KIOSK_CHROMIUM_HA_FLAGS:---ozone-platform=x11 --ignore-gpu-blocklist --use-gl=angle --use-angle=gl}"
+# Pi 5 : ANGLE/gl provoque souvent « GPU process isn't usable » → page login invité.
+read -r -a CHR_EXTRA <<<"${KIOSK_CHROMIUM_HA_FLAGS:---ozone-platform=x11 --disable-gpu --disable-gpu-compositing}"
 
 CHR_LOAD=()
 if [ -f "$EXT_DIR/manifest.json" ]; then

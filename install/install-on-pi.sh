@@ -56,6 +56,7 @@ install_local() {
   cp "${REPO_ROOT}/systemd/user/kiosk-url-receiver.service" "${KIOSK_HOME}/.config/systemd/user/"
   chown -R "${KIOSK_USER}:${KIOSK_USER}" "${KIOSK_HOME}/.config/systemd/user"
   runuser -u "$KIOSK_USER" -- systemctl --user daemon-reload
+  runuser -u "$KIOSK_USER" -- systemctl --user disable --now kiosk-ram-guard.timer 2>/dev/null || true
   runuser -u "$KIOSK_USER" -- systemctl --user enable --now hide-desktop.service firefox-geometry-guard.service kiosk-veille-watch.timer kiosk-url-receiver.service
 
   echo "OK. Jeton HA : ${KIOSK_HOME}/.config/ha-api-token (chmod 600)"

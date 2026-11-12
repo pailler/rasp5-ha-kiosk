@@ -125,6 +125,20 @@ class KioskHandler(BaseHTTPRequestHandler):
             return
 
         mute_local = bool(data.get("mute_local"))
+        lock_path = "/tmp/kiosk-open-tab2.lock"
+        try:
+            import fcntl
+
+            lock_fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o644)
+            try:
+                fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                self._json(503, {"error": "busy", "detail": "tab2_in_progress"})
+                return
+        except OSError as e:
+            self._json(503, {"error": "busy", "detail": str(e)})
+            return
+
         try:
             spawn_tab2(url, mute_local)
         except OSError as e:

@@ -2,8 +2,8 @@
 Description=Surveillance RAM kiosque (session graphique)
 
 [Timer]
-OnBootSec=2min
-OnUnitActiveSec=2min
+OnBootSec=25min
+OnUnitActiveSec=15min
 Persistent=true
 
 [Install]

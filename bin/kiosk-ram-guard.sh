@@ -7,7 +7,23 @@ COOLDOWN=/tmp/kiosk-ram-guard.cooldown
 CRITICAL_COOLDOWN=/tmp/kiosk-ram-guard-critical.cooldown
 export DISPLAY="${DISPLAY:-:0}"
 
+exec 9>/tmp/kiosk-ram-guard.lock
+flock -n 9 || exit 0
+
 log() { echo "$(date '+%F %T') $*" >>"$LOG"; }
+
+CONF="${HOME}/.config/ha-kiosk.env"
+[ -r "$CONF" ] && . "$CONF"
+GRACE="${KIOSK_RAM_GUARD_GRACE_SEC:-900}"
+uptime_s=$(awk '{print int($1)}' /proc/uptime)
+if [ "$uptime_s" -lt "$GRACE" ]; then
+  log "grace démarrage ${uptime_s}s/${GRACE}s — pas de recycle"
+  exit 0
+fi
+if [ -f /tmp/ha-kiosk-legacy.lock ] || [ -f /tmp/kiosk-open-tab2.lock ]; then
+  log "kiosque en cours de lancement — skip"
+  exit 0
+fi
 
 [ -f "${HOME}/.kiosk-veille-active" ] && exit 0
 
@@ -67,7 +83,7 @@ if [ "$mem_avail" -lt 120000 ] || [ "$pct" -ge 94 ]; then
   exit 0
 fi
 
-if [ "$ff_rss" -gt 950000 ] || [ "$mem_avail" -lt 450000 ] || [ "$pct" -ge 82 ]; then
+if [ "$ff_rss" -gt 1200000 ] || [ "$mem_avail" -lt 280000 ] || [ "$pct" -ge 92 ]; then
   log "seuil ff_rss=${ff_rss}kB avail=${mem_avail}kB pct=${pct}% → recycle firefox"
   "${HOME}/bin/kiosk-launch.sh" >>"$LOG" 2>&1
   echo "$now" >"$COOLDOWN"

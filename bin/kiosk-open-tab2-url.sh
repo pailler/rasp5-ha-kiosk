@@ -71,6 +71,8 @@ print(
     "var t=g.tabs[1];"
     "t.linkedBrowser.loadURI(u,{triggeringPrincipal:Services.scriptSecurityManager.getSystemPrincipal()});"
     "g.selectedTab=t;"
+    "w.focus();"
+    "if(t.linkedBrowser)t.linkedBrowser.focus();"
     "})();"
 )
 PY
@@ -78,6 +80,8 @@ PY
 
 opened=0
 firefox_focus_window || true
+
+firefox_remote "javascript:(function(){try{Services.prefs.setBoolPref('browser.tabs.loadInBackground',false);Services.prefs.setBoolPref('browser.tabs.loadDivertedInBackground',false);}catch(e){}})();" >/dev/null 2>&1 || true
 
 out="$(firefox_remote "$(load_in_tab2_js)")"
 if remote_ok "$out"; then
@@ -100,13 +104,20 @@ if [ "$opened" -eq 0 ]; then
   opened=1
 fi
 
-firefox_focus_window || true
-sleep 0.35
-if command -v wtype >/dev/null 2>&1; then
-  for _ in 1 2 3; do
-    wtype -M ctrl -k 2 2>/dev/null || true
-    sleep 0.2
+SHOW_TAB="${HOME}/bin/kiosk-show-tab.sh"
+if [ -x "$SHOW_TAB" ]; then
+  for _ in 1 2 3 4 5 6; do
+  "$SHOW_TAB" 2
+    sleep 0.35
   done
+else
+  firefox_focus_window || true
+  if command -v wtype >/dev/null 2>&1; then
+    for _ in 1 2 3; do
+      wtype -M ctrl -k 2 2>/dev/null || true
+      sleep 0.2
+    done
+  fi
 fi
 
 set_local_mute() {

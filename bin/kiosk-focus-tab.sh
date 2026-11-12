@@ -29,6 +29,10 @@ case "$TAB" in
     ;;
 esac
 
+if [ -x "${HOME}/bin/kiosk-show-tab.sh" ]; then
+  exec "${HOME}/bin/kiosk-show-tab.sh" "$TAB"
+fi
+
 idx=$((TAB - 1))
 /usr/bin/firefox-esr --profile "$PROFILE" -remote \
   "javascript:(function(){var w=Services.wm.getMostRecentBrowserWindow();if(w&&w.gBrowser&&w.gBrowser.tabs[${idx}])w.gBrowser.selectTabAtIndex(${idx});})();" 2>/dev/null && exit 0

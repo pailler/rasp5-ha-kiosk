@@ -41,8 +41,8 @@ lines = [
     'user_pref("layers.acceleration.force-disabled", true);',
     'user_pref("gfx.webrender.all", false);',
     'user_pref("gfx.webrender.enabled", false);',
-    'user_pref("browser.tabs.loadInBackground", true);',
-    'user_pref("browser.tabs.loadDivertedInBackground", true);',
+    'user_pref("browser.tabs.loadInBackground", false);',
+    'user_pref("browser.tabs.loadDivertedInBackground", false);',
     'user_pref("browser.tabs.focusOccludedInParent", false);',
 ]
 if start_url:

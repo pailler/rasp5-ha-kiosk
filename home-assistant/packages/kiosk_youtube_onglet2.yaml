@@ -7,6 +7,7 @@ input_text:
     icon: mdi:youtube
     max: 255
     initial: ""
+    mode: text
 
 input_boolean:
   mural_youtube_audio_bose:
@@ -36,58 +37,62 @@ script:
             {% else %}
             {{ '' }}
             {% endif %}
-          bose_audio: "{{ is_state('input_boolean.mural_youtube_audio_bose', 'on') }}"
-      - condition: template
-        value_template: >-
-          {{ target_url not in ['', 'unknown', 'unavailable']
-             and ('youtu.be/' in target_url or 'list=' in target_url
-                  or (('watch' in target_url or '/shorts/' in target_url)
-                      and 'v=' in target_url and (target_url.split('v=')[-1].split('&')[0] | length) >= 6)) }}
-      - choose:
-          - conditions:
-              - condition: template
-                value_template: "{{ bose_audio and youtube_id | length >= 6 }}"
-            sequence:
-              - action: switch.turn_on
-                target:
-                  entity_id: switch.multiprise_musique_bose
-              - action: media_player.volume_set
-                target:
-                  entity_id: media_player.musique_bose_2
-                data:
-                  volume_level: 0.45
-              - action: media_player.play_media
-                target:
-                  entity_id: media_player.musique_bose_2
-                data:
-                  media_content_id: "{{ youtube_id }}"
-                  media_content_type: youtube
-              - action: rest_command.rasp5_kiosk_youtube_tab2
-                data:
-                  url: "{{ target_url }}"
-                  mute_local: "true"
-          - conditions:
-              - condition: template
-                value_template: "{{ bose_audio and youtube_id | length < 6 }}"
-            sequence:
-              - action: switch.turn_on
-                target:
-                  entity_id: switch.multiprise_musique_bose
-              - action: media_player.play_media
-                target:
-                  entity_id: media_player.musique_bose_2
-                data:
-                  media_content_id: "{{ target_url }}"
-                  media_content_type: music
-                continue_on_error: true
-              - action: rest_command.rasp5_kiosk_youtube_tab2
-                data:
-                  url: "{{ target_url }}"
-                  mute_local: "true"
-        default:
-          - action: rest_command.rasp5_kiosk_youtube_tab2
+          url_ok: >-
+            {{ target_url not in ['', 'unknown', 'unavailable']
+               and ('youtu.be/' in target_url or 'list=' in target_url
+                    or (('watch' in target_url or '/shorts/' in target_url)
+                        and 'v=' in target_url and (target_url.split('v=')[-1].split('&')[0] | length) >= 6)) }}
+          bose_audio: >-
+            {% set s = states('input_boolean.mural_youtube_audio_bose') %}
+            {{ s == 'on' if s not in ['unknown', 'unavailable'] else true }}
+      - if:
+          - condition: template
+            value_template: "{{ not url_ok }}"
+        then:
+          - action: persistent_notification.create
             data:
-              url: "{{ target_url }}"
-              mute_local: "false"
+              title: Mur — YouTube
+              message: >-
+                URL incomplète ou invalide. Collez une adresse complète, par ex.
+                https://www.youtube.com/watch?v=jNQXAC9IVRw
+              notification_id: mural_youtube_url_invalide
+          - stop: "URL YouTube invalide"
+      - action: persistent_notification.create
+        data:
+          title: Mur — YouTube
+          message: "Lancement en cours sur le mur…"
+          notification_id: mural_youtube_lance
+      - action: rest_command.rasp5_kiosk_youtube_tab2
+        data:
+          url: "{{ target_url }}"
+          mute_local: "{{ bose_audio }}"
+      - parallel:
+          - sequence:
+              - choose:
+                  - conditions:
+                      - condition: template
+                        value_template: "{{ bose_audio and youtube_id | length >= 6 }}"
+                    sequence:
+                      - action: switch.turn_on
+                        target:
+                          entity_id: switch.multiprise_musique_bose
+                      - action: media_player.volume_set
+                        target:
+                          entity_id: media_player.musique_bose_2
+                        data:
+                          volume_level: 0.45
+                      - action: media_player.play_media
+                        target:
+                          entity_id: media_player.musique_bose_2
+                        data:
+                          media_content_id: "{{ youtube_id }}"
+                          media_content_type: youtube
+                  - conditions:
+                      - condition: template
+                        value_template: "{{ bose_audio }}"
+                    sequence:
+                      - action: switch.turn_on
+                        target:
+                          entity_id: switch.multiprise_musique_bose
 
 # rest_command : voir rest_command_kiosk_pi.yaml (configuration.yaml)

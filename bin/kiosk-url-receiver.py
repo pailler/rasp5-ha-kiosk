@@ -13,6 +13,7 @@ HOST = os.environ.get("KIOSK_HTTP_HOST", "0.0.0.0")
 PORT = int(os.environ.get("KIOSK_HTTP_PORT", "8765"))
 TOKEN_PATH = os.path.expanduser("~/.config/kiosk-http-token")
 OPEN_SCRIPT = os.path.expanduser("~/bin/kiosk-open-tab2-url.sh")
+SESSION_ENV = os.path.expanduser("~/bin/kiosk-session-env.sh")
 
 
 def load_token() -> str:
@@ -48,8 +49,24 @@ def valid_youtube_url(url: str) -> bool:
     return bool(m and len(m.group(1)) >= 6)
 
 
+def spawn_tab2(url: str, mute_local: bool) -> subprocess.Popen[bytes]:
+    """Lance le script dans la session graphique (hérite de l’env du service systemd)."""
+    mute = "1" if mute_local else "0"
+    cmd = (
+        f"set -a; [ -r '{SESSION_ENV}' ] && . '{SESSION_ENV}'; "
+        f"set +a; export KIOSK_MUTE_LOCAL={mute}; "
+        f"exec '{OPEN_SCRIPT}' {json.dumps(url)}"
+    )
+    return subprocess.Popen(
+        ["/bin/bash", "-lc", cmd],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+
+
 class KioskHandler(BaseHTTPRequestHandler):
-    server_version = "kiosk-url-receiver/1.0"
+    server_version = "kiosk-url-receiver/1.1"
 
     def log_message(self, fmt: str, *args) -> None:
         sys.stderr.write(f"kiosk-http: {self.address_string()} {fmt % args}\n")
@@ -77,15 +94,10 @@ class KioskHandler(BaseHTTPRequestHandler):
         path = self.path.rstrip("/") or "/"
 
         if path == "/tab1":
-            env = os.environ.copy()
-            env.setdefault("DISPLAY", ":0")
-            env.setdefault("WAYLAND_DISPLAY", "wayland-1")
-            env.setdefault("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
             focus = os.path.expanduser("~/bin/kiosk-focus-tab.sh")
             try:
                 subprocess.run(
-                    [focus, "1"],
-                    env=env,
+                    ["/bin/bash", "-lc", f". '{SESSION_ENV}' && exec '{focus}' 1"],
                     check=True,
                     timeout=15,
                 )
@@ -113,28 +125,13 @@ class KioskHandler(BaseHTTPRequestHandler):
             return
 
         mute_local = bool(data.get("mute_local"))
-
-        env = os.environ.copy()
-        env.setdefault("DISPLAY", ":0")
-        env.setdefault("WAYLAND_DISPLAY", "wayland-1")
-        env.setdefault(
-            "XDG_RUNTIME_DIR",
-            f"/run/user/{os.getuid()}",
-        )
-        if mute_local:
-            env["KIOSK_MUTE_LOCAL"] = "1"
         try:
-            subprocess.run(
-                [OPEN_SCRIPT, url],
-                env=env,
-                check=True,
-                timeout=60,
-            )
-        except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
-            self._json(502, {"error": "firefox_failed", "detail": str(e)})
+            spawn_tab2(url, mute_local)
+        except OSError as e:
+            self._json(502, {"error": "spawn_failed", "detail": str(e)})
             return
 
-        self._json(200, {"ok": True, "url": url})
+        self._json(202, {"ok": True, "accepted": True, "url": url})
 
 
 def main() -> None:

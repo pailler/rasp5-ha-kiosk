@@ -1,6 +1,6 @@
 #!/bin/bash
 # Ouvre une URL YouTube dans l’onglet 2 Firefox kiosque et affiche cet onglet.
-set -euo pipefail
+set -uo pipefail
 . "$(dirname "$0")/kiosk-session-env.sh"
 CONF="${HOME}/.config/ha-kiosk.env"
 [ -r "$CONF" ] && . "$CONF"
@@ -29,21 +29,35 @@ then
   exit 2
 fi
 
+firefox_focus_window() {
+  if ! command -v xdotool >/dev/null 2>&1; then
+    return 1
+  fi
+  local wid name
+  for wid in $(xdotool search --class firefox 2>/dev/null); do
+    name="$(xdotool getwindowname "$wid" 2>/dev/null)" || continue
+    echo "$name" | grep -qiE 'firefox|youtube|assistant|iahome|chargement|mozilla' || continue
+    xdotool windowactivate "$wid" 2>/dev/null || true
+    sleep 0.15
+    return 0
+  done
+  return 1
+}
+
 remote_ok() {
   local msg="$1"
-  [ -n "$msg" ] && ! echo "$msg" | grep -qiE 'failed|error|cannot'
+  [ -n "$msg" ] && ! echo "$msg" | grep -qiE 'failed|error|cannot|mozilla is not running'
 }
 
 firefox_remote() {
   if command -v timeout >/dev/null 2>&1; then
-    timeout 8 /usr/bin/firefox-esr --profile "$PROFILE" -remote "$1" 2>&1 || true
+    timeout 12 /usr/bin/firefox-esr --profile "$PROFILE" -remote "$1" 2>&1 || true
   else
     /usr/bin/firefox-esr --profile "$PROFILE" -remote "$1" 2>&1 || true
   fi
 }
 
-# 1) Charger YouTube dans l’onglet 2 (pas un nouvel onglet 3+)
-JS_LOAD=$(
+load_in_tab2_js() {
   python3 - "$URL" <<'PY'
 import json, sys
 u = json.dumps(sys.argv[1])
@@ -60,24 +74,38 @@ print(
     "})();"
 )
 PY
-)
+}
 
-out="$(firefox_remote "$JS_LOAD" || true)"
-if ! remote_ok "$out"; then
-  echo "remote JS échec, repli openURL" >>"$LOG"
-  out="$(firefox_remote "openURL(${URL},new-tab)" || true)"
-  if ! remote_ok "$out"; then
-    /usr/bin/firefox-esr --profile "$PROFILE" -new-tab "$URL" 2>/dev/null || true
-  fi
-  sleep 0.6
-  firefox_remote "javascript:(function(){var w=Services.wm.getMostRecentBrowserWindow();if(w&&w.gBrowser&&w.gBrowser.tabs[1])w.gBrowser.selectedTab=w.gBrowser.tabs[1];})();" >/dev/null 2>&1 || true
+opened=0
+firefox_focus_window || true
+
+out="$(firefox_remote "$(load_in_tab2_js)")"
+if remote_ok "$out"; then
+  opened=1
 fi
 
-sleep 0.4
+if [ "$opened" -eq 0 ]; then
+  echo "remote JS échec ($out), repli openURL/new-tab" >>"$LOG"
+  out="$(firefox_remote "openURL(${URL},new-tab)")"
+  if remote_ok "$out"; then
+    opened=1
+    firefox_remote "javascript:(function(){var w=Services.wm.getMostRecentBrowserWindow();if(w&&w.gBrowser&&w.gBrowser.tabs.length>=2)w.gBrowser.selectedTab=w.gBrowser.tabs[1];})();" >/dev/null 2>&1 || true
+  fi
+fi
+
+if [ "$opened" -eq 0 ]; then
+  /usr/bin/firefox-esr --profile "$PROFILE" -new-tab "$URL" 2>/dev/null || \
+    /usr/bin/firefox-esr --profile "$PROFILE" "$URL" 2>/dev/null || true
+  sleep 0.8
+  opened=1
+fi
+
+firefox_focus_window || true
+sleep 0.35
 if command -v wtype >/dev/null 2>&1; then
-  for _ in 1 2; do
+  for _ in 1 2 3; do
     wtype -M ctrl -k 2 2>/dev/null || true
-    sleep 0.25
+    sleep 0.2
   done
 fi
 

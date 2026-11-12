@@ -125,12 +125,21 @@ script:
                   - condition: template
                     value_template: "{{ bose_audio and youtube_id | length >= 6 }}"
                 then:
-                  - action: switch.turn_on
-                    target:
-                      entity_id: switch.multiprise_musique_bose
-                    continue_on_error: true
-                  - delay:
-                      seconds: 12
+                  - choose:
+                      - conditions:
+                          - condition: state
+                            entity_id: switch.multiprise_musique_bose
+                            state: "off"
+                        sequence:
+                          - action: switch.turn_on
+                            target:
+                              entity_id: switch.multiprise_musique_bose
+                            continue_on_error: true
+                          - delay:
+                              seconds: 12
+                    default:
+                      - delay:
+                          seconds: 2
                   - choose:
                       - conditions:
                           - condition: template
@@ -148,22 +157,19 @@ script:
                             data:
                               volume_level: 0.55
                             continue_on_error: true
-                          - action: media_player.play_media
+                          - action: media_player.volume_mute
                             target:
                               entity_id: media_player.musique_bose_2
                             data:
-                              media_content_id: >-
-                                https://www.youtube.com/watch?v={{ youtube_id }}
-                              media_content_type: cast
+                              is_volume_muted: false
                             continue_on_error: true
-                          - delay:
-                              seconds: 3
                           - action: media_player.play_media
                             target:
                               entity_id: media_player.musique_bose_2
                             data:
-                              media_content_id: "{{ youtube_id }}"
-                              media_content_type: youtube
+                              media_content_type: cast
+                              media_content_id: >-
+                                {"app_name":"youtube","media_id":"{{ youtube_id }}"}
                             continue_on_error: true
                       - conditions:
                           - condition: template

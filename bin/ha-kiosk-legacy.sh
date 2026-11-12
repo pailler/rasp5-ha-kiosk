@@ -71,17 +71,15 @@ firefox_focus_window() {
 }
 
 focus_ha_tab() {
-  local _i
-  for _i in 1 2; do
-    firefox_focus_window 2>/dev/null || true
-    sleep 0.5
-    if command -v wtype >/dev/null 2>&1; then
-      wtype -M ctrl -k 1 2>/dev/null || true
-    elif command -v xdotool >/dev/null 2>&1; then
-      xdotool key --clearmodifiers ctrl+1 2>/dev/null || true
-    fi
-    sleep 0.4
-  done
+  "${HOME}/bin/kiosk-focus-tab.sh" 1 2>/dev/null || {
+    local _i
+    for _i in 1 2; do
+      firefox_focus_window 2>/dev/null || true
+      sleep 0.5
+      command -v wtype >/dev/null 2>&1 && wtype -M ctrl -k 1 2>/dev/null || true
+      sleep 0.4
+    done
+  }
 }
 
 ensure_wayland_maximize_once() {

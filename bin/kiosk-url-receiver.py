@@ -18,6 +18,7 @@ NAVIGATE_SCRIPT = os.path.expanduser("~/bin/kiosk-ha-navigate.sh")
 SESSION_ENV = os.path.expanduser("~/bin/kiosk-session-env.sh")
 _AUDIO_SCRIPT = os.path.expanduser("~/bin/kiosk-audio-status.py")
 _YT_AUDIO_SCRIPT = os.path.expanduser("~/bin/kiosk-youtube-audio-url.py")
+_YT_BOSE_SCRIPT = os.path.expanduser("~/bin/kiosk-youtube-bose-play.py")
 _LAST_TAB2: tuple[str, float] = ("", 0.0)
 
 
@@ -217,6 +218,31 @@ class KioskHandler(BaseHTTPRequestHandler):
             return
 
         path = self.path.rstrip("/") or "/"
+
+        if path == "/youtube-bose":
+            length = int(self.headers.get("Content-Length", "0"))
+            raw = self.rfile.read(length) if length else b"{}"
+            if not os.path.isfile(_YT_BOSE_SCRIPT):
+                self._json(503, {"error": "youtube_bose_script_missing"})
+                return
+            try:
+                out = subprocess.check_output(
+                    ["python3", _YT_BOSE_SCRIPT],
+                    input=raw.decode("utf-8") if raw else "{}",
+                    text=True,
+                    timeout=150,
+                ).strip()
+                data = json.loads(out)
+                if not isinstance(data, dict):
+                    self._json(502, {"error": "invalid_script_output"})
+                    return
+                code = 200 if data.get("ok") else 502
+                self._json(code, data)
+            except subprocess.TimeoutExpired:
+                self._json(504, {"error": "youtube_bose_timeout"})
+            except (subprocess.CalledProcessError, json.JSONDecodeError, OSError) as e:
+                self._json(502, {"error": "youtube_bose_failed", "detail": str(e)})
+            return
 
         if path == "/audio":
             length = int(self.headers.get("Content-Length", "0"))

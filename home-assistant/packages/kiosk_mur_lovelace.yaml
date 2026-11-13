@@ -191,6 +191,8 @@ script:
             https://www.youtube.com/watch?v={{ youtube_id }}{% if bose_audio %}&mute=1{% endif %}
           navigate_embed_url: >-
             http://192.168.1.51:8123/local/mural-youtube-embed.html?v={{ youtube_id }}{% if bose_audio %}&mute=1{% endif %}
+          navigate_embed_url_hdmi: >-
+            http://192.168.1.51:8123/local/mural-youtube-embed.html?v={{ youtube_id }}
           path_yt: >-
             {% set base = states('input_text.mural_lovelace_path_youtube') | trim %}
             {{ base }}?v={{ youtube_id }}{% if bose_audio %}&mute=1{% endif %}
@@ -245,54 +247,20 @@ script:
                           - condition: template
                             value_template: "{{ 'musique_bose_2' in bose_player }}"
                         sequence:
-                          - action: media_player.turn_on
-                            target:
-                              entity_id: media_player.musique_bose_2
-                            continue_on_error: true
-                          - delay:
-                              seconds: 2
-                          - action: media_player.volume_set
-                            target:
-                              entity_id: media_player.musique_bose_2
-                            data:
-                              volume_level: >-
-                                {{ (states('input_number.mural_bose_volume') | float(55) / 100) | round(2) }}
-                            continue_on_error: true
-                          - action: media_player.volume_mute
-                            target:
-                              entity_id: media_player.musique_bose_2
-                            data:
-                              is_volume_muted: false
-                            continue_on_error: true
-                          - action: rest_command.rasp5_kiosk_youtube_audio_url
+                          - action: rest_command.rasp5_kiosk_youtube_bose_play
                             data:
                               video_id: "{{ youtube_id }}"
-                            response_variable: mural_yt_audio_resp
+                              entity_id: "{{ bose_player }}"
+                              volume_percent: "{{ states('input_number.mural_bose_volume') | int(55) }}"
                             continue_on_error: true
-                          - variables:
-                              mural_bose_stream_url: >-
-                                {% set resp = mural_yt_audio_resp | default(none) %}
-                                {% set body_txt = resp.content if resp is mapping and resp.content is defined else (resp if resp is string else '{}') %}
-                                {% set body = body_txt | from_json(default={}) %}
-                                {{ body.stream_url if body.ok else '' }}
+                          - delay:
+                              seconds: 3
                           - choose:
                               - conditions:
                                   - condition: template
-                                    value_template: "{{ mural_bose_stream_url | length > 24 }}"
-                                sequence:
-                                  - action: media_player.play_media
-                                    target:
-                                      entity_id: media_player.musique_bose_2
-                                    data:
-                                      media_content_type: music
-                                      media_content_id: "{{ mural_bose_stream_url }}"
-                                    continue_on_error: true
-                                  - delay:
-                                      seconds: 2
-                                  - action: media_player.media_play
-                                    target:
-                                      entity_id: media_player.musique_bose_2
-                                    continue_on_error: true
+                                    value_template: >-
+                                      {{ states(bose_player) == 'playing' }}
+                                sequence: []
                             default:
                               - action: media_player.play_media
                                 target:
@@ -301,6 +269,16 @@ script:
                                   media_content_type: cast
                                   media_content_id: >-
                                     {"app_name":"youtube","media_id":"{{ youtube_id }}"}
+                                continue_on_error: true
+                              - delay:
+                                  seconds: 5
+                              - action: rest_command.rasp5_kiosk_set_pi_mute
+                                data:
+                                  muted: false
+                                continue_on_error: true
+                              - action: rest_command.rasp5_kiosk_navigate
+                                data:
+                                  url: "{{ navigate_embed_url_hdmi }}"
                                 continue_on_error: true
                       - conditions:
                           - condition: template

@@ -34,9 +34,29 @@ rasp5_kiosk_set_pi_volume:
     Content-Type: "application/json"
   payload: '{"volume_percent": {{ volume_percent | int }} }'
 
+rasp5_kiosk_set_pi_mute:
+  url: "http://192.168.1.56:8765/audio"
+  method: POST
+  timeout: 15
+  headers:
+    Authorization: !secret rasp5_kiosk_http_authorization
+    Content-Type: "application/json"
+  payload: >-
+    {"muted": {% if muted is defined and muted in [true, 'true', 'True', 'on', 'yes', 1, 1.0] %}true{% else %}false{% endif %}}
+
 rasp5_kiosk_youtube_audio_url:
   url: "http://192.168.1.56:8765/youtube-audio?v={{ video_id }}"
   method: GET
   timeout: 130
   headers:
     Authorization: !secret rasp5_kiosk_http_authorization
+
+rasp5_kiosk_youtube_bose_play:
+  url: "http://192.168.1.56:8765/youtube-bose"
+  method: POST
+  timeout: 180
+  headers:
+    Authorization: !secret rasp5_kiosk_http_authorization
+    Content-Type: "application/json"
+  payload: >-
+    {"video_id":"{{ video_id }}","entity_id":"{{ entity_id }}","volume_percent":{{ volume_percent | int(55) }}}

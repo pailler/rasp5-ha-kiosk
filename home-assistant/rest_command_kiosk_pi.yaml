@@ -33,3 +33,10 @@ rasp5_kiosk_set_pi_volume:
     Authorization: !secret rasp5_kiosk_http_authorization
     Content-Type: "application/json"
   payload: '{"volume_percent": {{ volume_percent | int }} }'
+
+rasp5_kiosk_youtube_audio_url:
+  url: "http://192.168.1.56:8765/youtube-audio?v={{ video_id }}"
+  method: GET
+  timeout: 130
+  headers:
+    Authorization: !secret rasp5_kiosk_http_authorization

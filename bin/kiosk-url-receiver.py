@@ -17,6 +17,7 @@ OPEN_SCRIPT = os.path.expanduser("~/bin/kiosk-open-tab2-url.sh")
 NAVIGATE_SCRIPT = os.path.expanduser("~/bin/kiosk-ha-navigate.sh")
 SESSION_ENV = os.path.expanduser("~/bin/kiosk-session-env.sh")
 _AUDIO_SCRIPT = os.path.expanduser("~/bin/kiosk-audio-status.py")
+_YT_AUDIO_SCRIPT = os.path.expanduser("~/bin/kiosk-youtube-audio-url.py")
 _LAST_TAB2: tuple[str, float] = ("", 0.0)
 
 
@@ -168,6 +169,44 @@ class KioskHandler(BaseHTTPRequestHandler):
                 self._json(401, {"error": "unauthorized"})
                 return
             self._json(200, _audio_json())
+            return
+        if parsed.path.rstrip("/") == "/youtube-audio":
+            token = load_token()
+            if token and not authorized(self, token):
+                self._json(401, {"error": "unauthorized"})
+                return
+            q = urllib.parse.parse_qs(parsed.query)
+            vid = (q.get("v") or q.get("id") or [""])[0].strip()
+            url_param = (q.get("url") or [""])[0].strip()
+            if not vid and url_param:
+                import re as _re
+
+                m = _re.search(r"[?&]v=([\w-]{6,})", url_param) or _re.search(
+                    r"youtu\.be/([\w-]{6,})", url_param
+                )
+                vid = m.group(1) if m else ""
+            if len(vid) < 6:
+                self._json(400, {"error": "missing_v"})
+                return
+            if not os.path.isfile(_YT_AUDIO_SCRIPT):
+                self._json(503, {"error": "youtube_audio_script_missing"})
+                return
+            try:
+                out = subprocess.check_output(
+                    ["python3", _YT_AUDIO_SCRIPT, vid],
+                    text=True,
+                    timeout=130,
+                ).strip()
+                data = json.loads(out)
+                if not isinstance(data, dict):
+                    self._json(502, {"error": "invalid_script_output"})
+                    return
+                code = 200 if data.get("ok") else 502
+                self._json(code, data)
+            except subprocess.TimeoutExpired:
+                self._json(504, {"error": "youtube_audio_timeout"})
+            except (subprocess.CalledProcessError, json.JSONDecodeError, OSError) as e:
+                self._json(502, {"error": "youtube_audio_failed", "detail": str(e)})
             return
         self._json(404, {"error": "not_found"})
 

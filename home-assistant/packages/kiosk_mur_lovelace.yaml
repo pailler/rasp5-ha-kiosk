@@ -264,14 +264,44 @@ script:
                             data:
                               is_volume_muted: false
                             continue_on_error: true
-                          - action: media_player.play_media
-                            target:
-                              entity_id: media_player.musique_bose_2
+                          - action: rest_command.rasp5_kiosk_youtube_audio_url
                             data:
-                              media_content_type: cast
-                              media_content_id: >-
-                                {"app_name":"youtube","media_id":"{{ youtube_id }}"}
+                              video_id: "{{ youtube_id }}"
+                            response_variable: mural_yt_audio_resp
                             continue_on_error: true
+                          - variables:
+                              mural_bose_stream_url: >-
+                                {% set resp = mural_yt_audio_resp | default(none) %}
+                                {% set body_txt = resp.content if resp is mapping and resp.content is defined else (resp if resp is string else '{}') %}
+                                {% set body = body_txt | from_json(default={}) %}
+                                {{ body.stream_url if body.ok else '' }}
+                          - choose:
+                              - conditions:
+                                  - condition: template
+                                    value_template: "{{ mural_bose_stream_url | length > 24 }}"
+                                sequence:
+                                  - action: media_player.play_media
+                                    target:
+                                      entity_id: media_player.musique_bose_2
+                                    data:
+                                      media_content_type: music
+                                      media_content_id: "{{ mural_bose_stream_url }}"
+                                    continue_on_error: true
+                                  - delay:
+                                      seconds: 2
+                                  - action: media_player.media_play
+                                    target:
+                                      entity_id: media_player.musique_bose_2
+                                    continue_on_error: true
+                            default:
+                              - action: media_player.play_media
+                                target:
+                                  entity_id: media_player.musique_bose_2
+                                data:
+                                  media_content_type: cast
+                                  media_content_id: >-
+                                    {"app_name":"youtube","media_id":"{{ youtube_id }}"}
+                                continue_on_error: true
                       - conditions:
                           - condition: template
                             value_template: "{{ 'musique_bose_4' in bose_player }}"

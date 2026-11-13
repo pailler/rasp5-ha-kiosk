@@ -1,4 +1,4 @@
-# Carte « Mur — YouTube » (vue Musique / mobile)
+# Carte « Mur — YouTube » (Dashboard principal / Musique)
 
 type: vertical-stack
 title: Mur — YouTube
@@ -10,24 +10,14 @@ cards:
         name: URL YouTube (vidéo ou playlist)
       - entity: input_boolean.mural_youtube_audio_bose
         name: Son sur la Bose (vidéo muette sur le mur)
-      - entity: sensor.mural_bose_volume
-        name: Bose (niveau)
-      - entity: input_number.mural_bose_volume
-        name: Bose (réglage)
-  - type: entities
-    title: Son écran mur (Pi HDMI)
-    show_header_toggle: false
-    entities:
+      - type: section
+        label: Son écran mur (Pi HDMI)
       - entity: sensor.mural_pi_hdmi_volume
-        name: Niveau sur le Pi
-  - type: number
-    entity: input_number.mural_pi_hdmi_volume
-    name: Volume mur HDMI
-    icon: mdi:television-speaker
-  - type: horizontal-stack
-    cards:
+        name: Pi — niveau actuel
+      - entity: input_number.mural_pi_hdmi_volume
+        name: Pi — volume (curseur)
       - type: button
-        name: Muet Pi
+        name: Pi — couper le son
         icon: mdi:volume-off
         tap_action:
           action: call-service
@@ -35,13 +25,19 @@ cards:
           data:
             muted: true
       - type: button
-        name: Son Pi
+        name: Pi — activer le son
         icon: mdi:volume-high
         tap_action:
           action: call-service
           service: rest_command.rasp5_kiosk_set_pi_mute
           data:
             muted: false
+      - type: section
+        label: Son Bose
+      - entity: sensor.mural_bose_volume
+        name: Bose (niveau)
+      - entity: input_number.mural_bose_volume
+        name: Bose (réglage)
   - type: button
     name: Afficher sur le mur
     icon: mdi:youtube

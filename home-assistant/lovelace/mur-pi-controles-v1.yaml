@@ -1,0 +1,111 @@
+# Variante v1 — vue Lovelace « Pi » (path: mur-youtube-controles)
+# URL : http://<HA>:8123/lovelace/mur-youtube-controles
+# Thème : Graphite (sombre, lisible tactile)
+# Cartes : Mushroom (entêtes, interrupteurs) + slider-entity-row (curseurs volume)
+
+title: Pi
+path: mur-youtube-controles
+icon: mdi:raspberry-pi
+theme: Graphite
+cards:
+  - type: custom:mushroom-template-card
+    primary: Pi
+    secondary: Mur tactile · YouTube & volumes
+    icon: mdi:raspberry-pi
+    icon_color: red
+    card_mod:
+      style: |
+        ha-card {
+          border-radius: 18px;
+          background: linear-gradient(145deg, #1a1a1f 0%, #2d2d34 100%);
+          border: 1px solid rgba(255,255,255,0.08);
+        }
+  - type: custom:mushroom-entity-card
+    entity: input_text.mural_youtube_url
+    name: Lien YouTube
+    icon: mdi:youtube
+    icon_color: red
+    layout: vertical
+    tap_action:
+      action: none
+  - type: custom:mushroom-entity-card
+    entity: input_boolean.mural_youtube_audio_bose
+    name: Son sur la Bose
+    icon: mdi:speaker-wireless
+    icon_color: purple
+    layout: horizontal
+  - type: custom:mushroom-template-card
+    entity: sensor.mural_pi_hdmi_volume
+    primary: "HDMI {{ states('sensor.mural_pi_hdmi_volume') }} %"
+    secondary: >-
+      {% if state_attr('sensor.mural_pi_hdmi_volume', 'muted') %}
+      Son coupé sur le Pi
+      {% else %}
+      Sortie HDMI du mur
+      {% endif %}
+    icon: mdi:television-speaker
+    icon_color: >-
+      {% if state_attr('sensor.mural_pi_hdmi_volume', 'muted') %}grey{% else %}green{% endif %}
+    layout: horizontal
+  - type: entities
+    title: Volume HDMI (Pi)
+    show_header_toggle: false
+    state_color: true
+    entities:
+      - entity: input_number.mural_pi_hdmi_volume
+        name: Régler
+        type: custom:slider-entity-row
+        full_row: true
+  - type: custom:mushroom-chips-card
+    chips:
+      - type: action
+        icon: mdi:volume-off
+        tap_action:
+          action: call-service
+          service: rest_command.rasp5_kiosk_set_pi_mute
+          data:
+            muted: true
+      - type: action
+        icon: mdi:volume-high
+        tap_action:
+          action: call-service
+          service: rest_command.rasp5_kiosk_set_pi_mute
+          data:
+            muted: false
+  - type: custom:mushroom-template-card
+    entity: sensor.mural_bose_volume
+    primary: "Bose {{ states('sensor.mural_bose_volume') }} %"
+    secondary: "{{ states('input_select.mural_bose_media_player') | replace('media_player.', '') }}"
+    icon: mdi:speaker
+    icon_color: blue
+    layout: horizontal
+  - type: entities
+    title: Volume Bose
+    show_header_toggle: false
+    entities:
+      - entity: input_number.mural_bose_volume
+        name: Régler
+        type: custom:slider-entity-row
+        full_row: true
+      - entity: input_select.mural_bose_media_player
+        name: Enceinte
+  - type: grid
+    columns: 2
+    square: false
+    cards:
+      - type: custom:mushroom-template-card
+        primary: Lancer
+        secondary: YouTube sur le mur
+        icon: mdi:play-circle
+        icon_color: red
+        tap_action:
+          action: call-service
+          service: script.mural_afficher_youtube_lovelace
+      - type: custom:mushroom-template-card
+        primary: Accueil
+        secondary: Dashboard mur
+        icon: mdi:home-assistant
+        icon_color: cyan
+        tap_action:
+          action: call-service
+          service: script.mural_retour_accueil_lovelace

@@ -120,3 +120,20 @@ elif [ "$want" = reveil ] && [ "$in_veille" -eq 1 ]; then
   save_since "$now" "reveil"
   echo "$(date) reveil (tel=$state)" >>"$LOG"
 fi
+
+# Écran noir : plus en veille, à la maison, mais Chromium arrêté → relance (max 1/min).
+GUARD_FILE="${HOME}/.kiosk-display-guard"
+if [ "$want" = idle ] && [ "$in_veille" -eq 0 ] && [ "$state" = "home" ] && ! is_night; then
+  if ! pgrep -x chromium >/dev/null 2>&1; then
+    last=0
+    [ -f "$GUARD_FILE" ] && last=$(cat "$GUARD_FILE" 2>/dev/null || echo 0)
+    last=${last:-0}
+    if [ $((now - last)) -ge 60 ]; then
+      echo "$now" >"$GUARD_FILE"
+      echo "$(date) garde: chromium absent → relance kiosque" >>"$LOG"
+      "${HOME}/bin/reveil-kiosk.sh" >>"$LOG" 2>&1 || true
+    fi
+  else
+    rm -f "$GUARD_FILE"
+  fi
+fi

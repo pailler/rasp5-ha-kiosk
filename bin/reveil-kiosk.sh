@@ -23,8 +23,20 @@ CONF="${HOME}/.config/ha-kiosk.env"
   fi
   if [ "$ok" -eq 1 ]; then
     rm -f "${HOME}/.kiosk-veille-active"
-    xsetroot -solid black 2>/dev/null || true
-    echo "réveil OK kiosque lancé (chromium=${KIOSK_HA_USE_CHROMIUM:-0})"
+    for _ in 1 2 3 4 5; do
+      pgrep -x chromium >/dev/null 2>&1 && break
+      sleep 1
+    done
+    if ! pgrep -x chromium >/dev/null 2>&1 && [ "${KIOSK_HA_USE_CHROMIUM:-0}" = "1" ]; then
+      echo "avertissement: chromium absent après lancement → nouvel essai return-ha"
+      "${HOME}/bin/kiosk-return-ha.sh" "${KIOSK_LOVELACE_PATH:-/lovelace/dashboard-principal}" || true
+      sleep 3
+    fi
+    if pgrep -x chromium >/dev/null 2>&1; then
+      echo "réveil OK kiosque lancé (chromium=1, pid visible)"
+    else
+      echo "réveil partiel (chromium non détecté)"
+    fi
   else
     echo "ÉCHEC kiosk-launch → on garde le flag veille"
     touch "${HOME}/.kiosk-veille-active"

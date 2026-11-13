@@ -1,37 +1,58 @@
-# Carte à ajouter dans la vue Lovelace (ex. ecranmural) : Mode YAML sur le dashboard
+# Carte « Mur — YouTube » (vue Musique / mobile)
 
 type: vertical-stack
-title: YouTube — écran mural
+title: Mur — YouTube
 cards:
-  - type: entity
-    entity: input_text.mural_youtube_url
-    name: Lien vidéo ou playlist
-    icon: mdi:link-variant
-  - type: entity
-    entity: input_boolean.mural_youtube_audio_bose
-    name: Son sur la Bose (vidéo muette sur le mur)
   - type: entities
-    title: Niveaux son
+    show_header_toggle: false
+    entities:
+      - entity: input_text.mural_youtube_url
+        name: URL YouTube (vidéo ou playlist)
+      - entity: input_boolean.mural_youtube_audio_bose
+        name: Son sur la Bose (vidéo muette sur le mur)
+      - entity: sensor.mural_bose_volume
+        name: Bose (niveau)
+      - entity: input_number.mural_bose_volume
+        name: Bose (réglage)
+  - type: entities
+    title: Son écran mur (Pi HDMI)
     show_header_toggle: false
     entities:
       - entity: sensor.mural_pi_hdmi_volume
-        name: Pi HDMI (niveau actuel)
-      - entity: input_number.mural_pi_hdmi_volume
-        name: Pi HDMI (réglage)
-      - entity: sensor.mural_bose_volume
-        name: Bose (niveau actuel)
-      - entity: input_number.mural_bose_volume
-        name: Bose (réglage)
+        name: Niveau sur le Pi
+  - type: number
+    entity: input_number.mural_pi_hdmi_volume
+    name: Volume mur HDMI
+    icon: mdi:television-speaker
+  - type: horizontal-stack
+    cards:
+      - type: button
+        name: Muet Pi
+        icon: mdi:volume-off
+        tap_action:
+          action: call-service
+          service: rest_command.rasp5_kiosk_set_pi_mute
+          data:
+            muted: true
+      - type: button
+        name: Son Pi
+        icon: mdi:volume-high
+        tap_action:
+          action: call-service
+          service: rest_command.rasp5_kiosk_set_pi_mute
+          data:
+            muted: false
   - type: button
-    name: Lancer sur le mur (onglet 2)
+    name: Afficher sur le mur
     icon: mdi:youtube
     show_icon: true
     tap_action:
       action: call-service
-      service: script.mural_lancer_youtube_onglet2
+      service: script.mural_afficher_youtube_lovelace
   - type: button
-    name: Revenir à Home Assistant (onglet 1)
+    name: Retour accueil (mur)
     icon: mdi:home-assistant
+    show_icon: true
     tap_action:
       action: call-service
-      service: rest_command.rasp5_kiosk_focus_ha_tab1
+      service: script.mural_retour_accueil_lovelace

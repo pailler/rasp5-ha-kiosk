@@ -252,40 +252,43 @@ script:
                           entity_id: "{{ bose_player }}"
                           volume_percent: "{{ states('input_number.mural_bose_volume') | int(55) }}"
                         continue_on_error: true
-                      - wait_template: "{{ states(bose_player) == 'playing' }}"
+                      - wait_for_trigger:
+                          - platform: state
+                            entity_id: media_player.musique_bose_2
+                            to: playing
                         timeout: 180
                         continue_on_error: true
                       - delay:
                           seconds: 1
-                      - choose:
-                          - conditions:
-                              - condition: template
-                                value_template: >-
-                                  {{ states(bose_player) == 'playing' }}
-                            sequence:
-                              - action: rest_command.rasp5_kiosk_navigate
-                                data:
-                                  url: "{{ navigate_embed_url }}&start=0"
-                                continue_on_error: true
-                          default:
-                            - action: media_player.play_media
-                              target:
-                                entity_id: media_player.musique_bose_2
-                              data:
-                                media_content_type: cast
-                                media_content_id: >-
-                                  {"app_name":"youtube","media_id":"{{ youtube_id }}"}
-                              continue_on_error: true
-                            - delay:
-                                seconds: 5
-                            - action: rest_command.rasp5_kiosk_set_pi_mute
-                              data:
-                                muted: false
-                              continue_on_error: true
-                            - action: rest_command.rasp5_kiosk_navigate
-                              data:
-                                url: "{{ navigate_embed_url_hdmi }}"
-                              continue_on_error: true
+                      - if:
+                          - condition: template
+                            value_template: >-
+                              {{ states(bose_player) == 'playing' }}
+                        then:
+                          - action: rest_command.rasp5_kiosk_navigate
+                            data:
+                              url: >-
+                                {{ navigate_embed_url }}&start=0
+                            continue_on_error: true
+                        else:
+                          - action: media_player.play_media
+                            target:
+                              entity_id: media_player.musique_bose_2
+                            data:
+                              media_content_type: cast
+                              media_content_id: >-
+                                {"app_name":"youtube","media_id":"{{ youtube_id }}"}
+                            continue_on_error: true
+                          - delay:
+                              seconds: 5
+                          - action: rest_command.rasp5_kiosk_set_pi_mute
+                            data:
+                              muted: false
+                            continue_on_error: true
+                          - action: rest_command.rasp5_kiosk_navigate
+                            data:
+                              url: "{{ navigate_embed_url_hdmi }}"
+                            continue_on_error: true
                   - conditions:
                       - condition: template
                         value_template: "{{ 'musique_bose_4' in bose_player }}"

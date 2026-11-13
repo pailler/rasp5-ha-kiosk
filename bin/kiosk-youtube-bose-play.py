@@ -7,6 +7,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -123,7 +124,7 @@ def play_youtube_on_cast(
         return {"ok": False, "error": "stream_unavailable", "detail": stream}
 
     volume = max(0.0, min(1.0, volume_percent / 100.0))
-    for domain, service, payload in (
+    steps: tuple[tuple[str, str, dict], ...] = (
         ("media_player", "turn_on", {"entity_id": entity_id}),
         (
             "media_player",
@@ -144,8 +145,8 @@ def play_youtube_on_cast(
                 "media_content_id": stream["stream_url"],
             },
         ),
-        ("media_player", "media_play", {"entity_id": entity_id}),
-    ):
+    )
+    for domain, service, payload in steps:
         step = _ha_service(ha_url, token, domain, service, payload)
         if not step.get("ok"):
             return {
@@ -153,6 +154,18 @@ def play_youtube_on_cast(
                 "error": f"{domain}.{service}_failed",
                 "detail": step,
             }
+
+    state = ""
+    for _ in range(8):
+        time.sleep(1.5)
+        state = _entity_state(ha_url, token, entity_id)
+        if state == "playing":
+            break
+    if state != "playing":
+        step = _ha_service(ha_url, token, "media_player", "media_play", {"entity_id": entity_id})
+        if step.get("ok"):
+            time.sleep(2)
+            state = _entity_state(ha_url, token, entity_id)
 
     state = _entity_state(ha_url, token, entity_id)
     return {

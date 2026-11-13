@@ -1,7 +1,8 @@
 #!/bin/bash
 # shellcheck source=kiosk-session-env.sh
 . "$(dirname "$0")/kiosk-session-env.sh"
-# Veille : absent (traceur routeur / WiFi) OU nuit 01h-07h, délai 5 min.
+# Veille : absent (traceur routeur / WiFi) OU nuit 01h-07h.
+# Délais (secondes) : KIOSK_VEILLE_DELAY_SEC (défaut 300), KIOSK_REVEIL_DELAY_SEC (défaut 120).
 HA_URL="${HA_URL:-http://192.168.1.51:8123}"
 # Traceur LAN (WiFi) : quitte "home" dès déconnexion du routeur. Éviter le GPS seul (ex. device_tracker.mi).
 ENTITY="${HA_ENTITY:-device_tracker.xiaomi_13_lite}"
@@ -9,7 +10,8 @@ TOKEN_FILE="${HOME}/.config/ha-api-token"
 CONF_FILE="${HOME}/.config/ha-kiosk.env"
 TZ_NAME="${TZ:-Europe/Paris}"
 LOG="${HOME}/veille-watch.log"
-DELAY=300
+VEILLE_DELAY="${KIOSK_VEILLE_DELAY_SEC:-300}"
+REVEIL_DELAY="${KIOSK_REVEIL_DELAY_SEC:-120}"
 STATE_FILE="${HOME}/.veille-watch-state"
 FAIL_FILE="${HOME}/.veille-watch-fail-count"
 
@@ -73,7 +75,7 @@ if [ -z "$state" ]; then
     SINCE=${VEILLE_FAIL_SINCE:-0}
     [ ! -f "${HOME}/.veille-fail-since" ] && echo "$now" >"${HOME}/.veille-fail-since"
     since=$(cat "${HOME}/.veille-fail-since" 2>/dev/null || echo "$now")
-    if [ $((now - since)) -ge "$DELAY" ]; then
+    if [ $((now - since)) -ge "$VEILLE_DELAY" ]; then
       "${HOME}/bin/veille-ram.sh"
       save_since "$now" "veille"
       save_fail_count 0
@@ -102,7 +104,12 @@ if [ "$MODE" != "$want" ]; then
 fi
 
 elapsed=$((now - SINCE))
-[ "$elapsed" -lt "$DELAY" ] && exit 0
+need_delay=$VEILLE_DELAY
+case "$want" in
+  reveil) need_delay=$REVEIL_DELAY ;;
+  veille) need_delay=$VEILLE_DELAY ;;
+esac
+[ "$elapsed" -lt "$need_delay" ] && exit 0
 
 if [ "$want" = veille ] && [ "$in_veille" -eq 0 ]; then
   "${HOME}/bin/veille-ram.sh"

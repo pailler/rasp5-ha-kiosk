@@ -21,20 +21,31 @@
   ></iframe>
   <script>
     (function () {
-      var v = new URLSearchParams(location.search).get("v") || "";
-      var mute = new URLSearchParams(location.search).get("mute") === "1";
+      var params = new URLSearchParams(location.search);
+      var v = params.get("v") || "";
+      var mute = params.get("mute") === "1";
+      var hold = params.get("hold") === "1";
+      var startSec = parseInt(params.get("start") || params.get("t") || "0", 10);
+      if (!Number.isFinite(startSec) || startSec < 0) startSec = 0;
       var el = document.getElementById("player");
       if (!v || v.length < 6) {
         document.body.innerHTML =
           '<p class="msg">Choisissez une vidéo dans Home Assistant puis « Afficher sur le mur ».</p>';
         return;
       }
+      if (hold) {
+        document.body.innerHTML =
+          '<p class="msg">Synchronisation audio Bose…</p>';
+        return;
+      }
       var origin = location.protocol + "//" + location.host;
       var qs =
-        "autoplay=1&rel=0&playsinline=1&modestbranding=1" +
+        (hold ? "autoplay=0" : "autoplay=1") +
+        "&rel=0&playsinline=1&modestbranding=1" +
         "&origin=" + encodeURIComponent(origin) +
         "&widget_referrer=" + encodeURIComponent(origin);
       if (mute) qs += "&mute=1";
+      if (startSec > 0) qs += "&start=" + startSec;
       el.src = "https://www.youtube.com/embed/" + encodeURIComponent(v) + "?" + qs;
     })();
   </script>

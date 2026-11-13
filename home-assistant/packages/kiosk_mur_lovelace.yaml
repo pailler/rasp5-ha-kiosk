@@ -216,23 +216,22 @@ script:
           entity_id: input_text.mural_youtube_url
         data:
           value: "{{ target_url }}"
-      - choose:
-          - conditions:
-              - condition: template
-                value_template: "{{ bose_audio and youtube_id | length >= 6 }}"
-            sequence:
-              - action: script.mural_youtube_avec_bose_sync
-                data:
-                  video_id: "{{ youtube_id }}"
-                  target_url: "{{ target_url }}"
-                  navigate_embed_url: "{{ navigate_embed_url }}"
-                  navigate_embed_url_hdmi: "{{ navigate_embed_url_hdmi }}"
-                  bose_player: "{{ bose_player }}"
-          default:
-            - action: rest_command.rasp5_kiosk_navigate
-              data:
-                url: "{{ navigate_embed_url_hdmi }}"
-              continue_on_error: true
+      - if:
+          - condition: template
+            value_template: "{{ bose_audio and youtube_id | length >= 6 }}"
+        then:
+          - action: script.mural_youtube_avec_bose_sync
+            data:
+              video_id: "{{ youtube_id }}"
+              target_url: "{{ target_url }}"
+              navigate_embed_url: "{{ navigate_embed_url }}"
+              navigate_embed_url_hdmi: "{{ navigate_embed_url_hdmi }}"
+              bose_player: "{{ bose_player }}"
+        else:
+          - action: rest_command.rasp5_kiosk_navigate
+            data:
+              url: "{{ navigate_embed_url_hdmi }}"
+            continue_on_error: true
 
   mural_youtube_avec_bose_sync:
     alias: Mur — YouTube + Bose (sync audio/vidéo)

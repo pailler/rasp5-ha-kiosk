@@ -2,6 +2,8 @@
 LOG="${HOME}/veille.log"
 # shellcheck source=kiosk-session-env.sh
 . "${HOME}/bin/kiosk-session-env.sh"
+CONF="${HOME}/.config/ha-kiosk.env"
+[ -r "$CONF" ] && . "$CONF"
 
 {
   echo "=== reveil-kiosk $(date) ==="
@@ -13,11 +15,18 @@ LOG="${HOME}/veille.log"
 
   systemctl --user start hide-desktop.service firefox-geometry-guard.service 2>/dev/null || true
 
+  ok=0
   if "${HOME}/bin/kiosk-launch.sh"; then
+    ok=1
+  elif "${HOME}/bin/kiosk-ha-browser-active.sh"; then
+    ok=1
+  fi
+  if [ "$ok" -eq 1 ]; then
     rm -f "${HOME}/.kiosk-veille-active"
-    echo "réveil OK firefox lancé"
+    xsetroot -solid black 2>/dev/null || true
+    echo "réveil OK kiosque lancé (chromium=${KIOSK_HA_USE_CHROMIUM:-0})"
   else
-    echo "ÉCHEC ha-meteo-kiosk → on garde le flag veille"
+    echo "ÉCHEC kiosk-launch → on garde le flag veille"
     touch "${HOME}/.kiosk-veille-active"
     exit 1
   fi

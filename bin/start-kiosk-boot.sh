@@ -62,7 +62,10 @@ done
 
 pkill -x onboard 2>/dev/null || true
 
-if [ "${KIOSK_LEGACY:-0}" = "1" ]; then
+if [ "${KIOSK_HA_USE_CHROMIUM:-0}" = "1" ]; then
+  PATH_VIEW="${KIOSK_LOVELACE_PATH:-/lovelace/dashboard-principal}"
+  nohup "${HOME}/bin/kiosk-return-ha.sh" "$PATH_VIEW" </dev/null >>"$LOG" 2>&1 &
+elif [ "${KIOSK_LEGACY:-0}" = "1" ]; then
   if ! pgrep -f "ha-kiosk-legacy\\.sh" >/dev/null 2>&1; then
     nohup "${HOME}/bin/ha-kiosk-legacy.sh" </dev/null >>"$LOG" 2>&1 &
   fi
@@ -81,9 +84,8 @@ for _ in $(seq 1 90); do
     "${HOME}/bin/kiosk-prune-extra-firefox.sh" || true
     sleep 1
   fi
-  n=$("${HOME}/bin/kiosk-list-main-firefox.sh" 2>/dev/null | wc -l)
-  [ "$n" -ge 1 ] || { sleep 2; continue; }
-  echo "kiosque OK (instances=${n})"
+  "${HOME}/bin/kiosk-ha-browser-active.sh" || { sleep 2; continue; }
+  echo "kiosque OK"
   touch "$STAMP"
   "${HOME}/bin/kiosk-ensure-ha-url.sh" 2>/dev/null || true
   (

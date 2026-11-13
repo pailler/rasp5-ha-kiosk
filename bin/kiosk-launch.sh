@@ -9,9 +9,17 @@ flock -n 9 || exit 0
 CONF="${HOME}/.config/ha-kiosk.env"
 [ -r "$CONF" ] && . "$CONF"
 
-if "${HOME}/bin/kiosk-firefox-kiosk-running.sh" 2>/dev/null; then
+if "${HOME}/bin/kiosk-ha-browser-active.sh" 2>/dev/null; then
   "${HOME}/bin/kiosk-prune-extra-firefox.sh" 2>/dev/null || true
   exit 0
+fi
+
+if [ "${KIOSK_HA_USE_CHROMIUM:-0}" = "1" ]; then
+  PATH_VIEW="${KIOSK_LOVELACE_PATH:-/lovelace/dashboard-principal}"
+  if "${HOME}/bin/kiosk-return-ha.sh" "$PATH_VIEW"; then
+    exit 0
+  fi
+  exit 1
 fi
 
 if [ "${KIOSK_LEGACY:-0}" = "1" ]; then

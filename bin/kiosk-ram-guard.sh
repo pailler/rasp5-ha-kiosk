@@ -59,9 +59,9 @@ if [ "$ff_n" -gt 1 ]; then
   exit 0
 fi
 
-if ! pgrep -x firefox-esr >/dev/null; then
+if ! "${HOME}/bin/kiosk-ha-browser-active.sh"; then
   pkill -x onboard 2>/dev/null || true
-  log "firefox absent → relance kiosque"
+  log "navigateur kiosque absent → relance"
   "${HOME}/bin/kiosk-launch.sh" >>"$LOG" 2>&1
   echo "$now" >"$COOLDOWN"
   exit 0

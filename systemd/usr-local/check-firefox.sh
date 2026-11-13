@@ -15,6 +15,7 @@ STAMP="/run/user/${KIOSK_UID}/kiosk-boot-once"
 [ ! -f "$STAMP" ] && exit 0
 ff_n=$(pgrep -u "${KIOSK_USER}" -af 'firefox-esr.*kiosk-profile.*--no-remote' 2>/dev/null | wc -l)
 [ "$ff_n" -gt 1 ] && runuser -u "${KIOSK_USER}" -- "${KIOSK_HOME}/bin/kiosk-prune-extra-firefox.sh" && exit 0
+pgrep -u "${KIOSK_USER}" -f 'chromium.*chromium-ha-kiosk' >/dev/null 2>&1 && exit 0
 pgrep -u "${KIOSK_USER}" -x firefox-esr >/dev/null 2>&1 && exit 0
 pgrep -u "${KIOSK_USER}" -f ha-kiosk-legacy >/dev/null 2>&1 && exit 0
 logger "Kiosque HA absent - relance (user ${KIOSK_USER})"

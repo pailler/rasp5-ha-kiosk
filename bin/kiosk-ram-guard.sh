@@ -51,6 +51,11 @@ ff_rss=0
 while read -r rss; do
   [ -n "$rss" ] && ff_rss=$((ff_rss + rss))
 done < <(ps -C firefox-esr -o rss= 2>/dev/null)
+chr_rss=0
+while read -r rss; do
+  [ -n "$rss" ] && chr_rss=$((chr_rss + rss))
+done < <(ps -C chromium -o rss= 2>/dev/null)
+browser_rss=$((ff_rss + chr_rss))
 
 ff_n=$(pgrep -af 'firefox-esr.*kiosk-profile.*--no-remote' 2>/dev/null | wc -l)
 if [ "$ff_n" -gt 1 ]; then
@@ -86,7 +91,7 @@ if [ "$mem_avail" -lt 120000 ] || [ "$pct" -ge 94 ]; then
     lc=$(cat "$CRITICAL_COOLDOWN" 2>/dev/null || echo 0)
     [ $((now - lc)) -lt 300 ] && exit 0
   fi
-  log "CRITIQUE avail=${mem_avail}kB pct=${pct}% ff=${ff_rss}kB → veille+réveil"
+  log "CRITIQUE avail=${mem_avail}kB pct=${pct}% browser=${browser_rss}kB (ff=${ff_rss} chr=${chr_rss}) → veille+réveil"
   "${HOME}/bin/veille-ram.sh"
   sleep 3
   "${HOME}/bin/reveil-kiosk.sh" >>"$LOG" 2>&1
@@ -96,8 +101,9 @@ if [ "$mem_avail" -lt 120000 ] || [ "$pct" -ge 94 ]; then
   exit 0
 fi
 
-if [ "$ff_rss" -gt 1200000 ] || [ "$mem_avail" -lt 280000 ] || [ "$pct" -ge 92 ]; then
-  log "seuil ff_rss=${ff_rss}kB avail=${mem_avail}kB pct=${pct}% → recycle firefox"
+chr_limit="${KIOSK_RAM_CHROMIUM_RSS_KB:-1400000}"
+if [ "$browser_rss" -gt "$chr_limit" ] || [ "$mem_avail" -lt 280000 ] || [ "$pct" -ge 92 ]; then
+  log "seuil browser_rss=${browser_rss}kB avail=${mem_avail}kB pct=${pct}% → recycle kiosque"
   "${HOME}/bin/kiosk-launch.sh" >>"$LOG" 2>&1
   echo "$now" >"$COOLDOWN"
   echo "$now" >"$STAMP"

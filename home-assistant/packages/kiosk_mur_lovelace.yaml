@@ -17,7 +17,7 @@ input_text:
     name: Chemin Lovelace — accueil mur
     icon: mdi:home
     max: 120
-    initial: "/lovelace/dashboard-principal"
+    initial: "/lovelace/ecranmural"
   mural_lovelace_path_youtube:
     name: Chemin mur YouTube (local HA)
     icon: mdi:television

@@ -3,7 +3,11 @@
 set -euo pipefail
 LOCK=/tmp/kiosk-launch.lock
 exec 9>"$LOCK"
-flock -n 9 || exit 0
+if [ "${KIOSK_LAUNCH_WAIT:-0}" = "1" ]; then
+  flock -w 45 9 || exit 1
+else
+  flock -n 9 || exit 0
+fi
 
 . "$(dirname "$0")/kiosk-session-env.sh"
 CONF="${HOME}/.config/ha-kiosk.env"

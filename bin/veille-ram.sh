@@ -9,8 +9,7 @@ LOG="${HOME}/veille.log"
   pkill -9 -x firefox-esr 2>/dev/null || pkill -9 -f firefox-esr 2>/dev/null || true
   pkill -x chromium 2>/dev/null || pkill -f "chromium.*8123" 2>/dev/null || true
   sleep 1
-  xset dpms force off 2>/dev/null || true
-  vcgencmd display_power 0 2>/dev/null || true
-  echo "Firefox arrêté, écran coupé si possible"
+  # Pas de DPMS fiable sur XWayland (Pi 5) : l’écran noir vient surtout de l’arrêt du navigateur.
+  echo "Navigateur kiosque arrêté (veille logicielle)"
 } >>"$LOG" 2>&1
 touch "${HOME}/.kiosk-veille-active"

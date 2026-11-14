@@ -1,5 +1,6 @@
 #!/bin/bash
 # Réveil sortie vidéo sur Pi + Wayfire/XWayland (DPMS souvent absent sur XWAYLAND0).
+. "$(dirname "$0")/kiosk-session-env.sh"
 export DISPLAY="${DISPLAY:-:0}"
 xset dpms force on 2>/dev/null || true
 xset s reset 2>/dev/null || true

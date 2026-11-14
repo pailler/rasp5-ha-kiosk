@@ -38,8 +38,10 @@ nohup "$CHR" --user-data-dir="$CHR_PROFILE" --kiosk --no-first-run --no-default-
   --check-for-update-interval=31536000 \
   "${CHR_EXTRA[@]}" "${CHR_LOAD[@]}" "$url" </dev/null >>"$LOG" 2>&1 &
 
-for _ in $(seq 1 25); do
-  pgrep -x chromium >/dev/null 2>&1 && exit 0
-  sleep 1
+for _ in $(seq 1 45); do
+  pgrep -f "chromium.*8123" >/dev/null 2>&1 || { sleep 1; continue; }
+  pgrep -f "chromium.*type=renderer" >/dev/null 2>&1 || { sleep 1; continue; }
+  "${HOME}/bin/kiosk-chromium-postlaunch.sh" >>"$LOG" 2>&1 &
+  exit 0
 done
 exit 1

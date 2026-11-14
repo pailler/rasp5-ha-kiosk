@@ -28,17 +28,23 @@ CONF="${HOME}/.config/ha-kiosk.env"
   if [ "$ok" -eq 1 ]; then
     rm -f "${HOME}/.kiosk-veille-active"
     rm -f "${HOME}/.kiosk-veille-night"
-    for _ in 1 2 3 4 5 6 8 10; do
-      "${HOME}/bin/kiosk-ha-browser-active.sh" 2>/dev/null && break
+    "${HOME}/bin/kiosk-chromium-postlaunch.sh" 2>/dev/null || true
+    for _ in 1 2 3 4 5 6 8 10 12 15 20 25 30; do
+      "${HOME}/bin/kiosk-ha-browser-ready.sh" 2>/dev/null && break
       sleep 1
     done
-    if ! "${HOME}/bin/kiosk-ha-browser-active.sh" 2>/dev/null && [ "${KIOSK_HA_USE_CHROMIUM:-0}" = "1" ]; then
-      echo "avertissement: kiosque HA absent après lancement → nouvel essai return-ha"
-      "${HOME}/bin/kiosk-return-ha.sh" "${KIOSK_LOVELACE_PATH:-/lovelace/ecranmural}" || true
-      sleep 3
+    if ! "${HOME}/bin/kiosk-ha-browser-ready.sh" 2>/dev/null && [ "${KIOSK_HA_USE_CHROMIUM:-0}" = "1" ]; then
+      echo "avertissement: kiosque pas prêt (noir / sans renderer) → nouvel essai return-ha"
+      pkill -f "chromium.*8123" 2>/dev/null || pkill -x chromium 2>/dev/null || true
+      sleep 1
+      KIOSK_LAUNCH_WAIT=1 "${HOME}/bin/kiosk-return-ha.sh" "${KIOSK_LOVELACE_PATH:-/lovelace/ecranmural}" || true
+      "${HOME}/bin/kiosk-chromium-postlaunch.sh" 2>/dev/null || true
+      sleep 5
     fi
-    if "${HOME}/bin/kiosk-ha-browser-active.sh" 2>/dev/null; then
-      echo "réveil OK kiosque HA actif ($(pgrep -af 'chromium.*8123' 2>/dev/null | head -1))"
+    if "${HOME}/bin/kiosk-ha-browser-ready.sh" 2>/dev/null; then
+      echo "réveil OK kiosque HA prêt ($(pgrep -af 'chromium.*8123' 2>/dev/null | head -1))"
+    elif "${HOME}/bin/kiosk-ha-browser-active.sh" 2>/dev/null; then
+      echo "réveil partiel (processus seul, écran peut rester noir)"
     else
       echo "réveil partiel (navigateur kiosque non détecté)"
     fi

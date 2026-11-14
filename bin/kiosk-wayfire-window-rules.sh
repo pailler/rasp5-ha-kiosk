@@ -34,6 +34,8 @@ strip_old
   echo "ha_kiosk_ff_geom = on created if app_id contains \"firefox\" then set geometry 0 0 ${W} ${H}"
   echo "ha_kiosk_ha_title = on created if title contains \"Home Assistant\" then maximize"
   echo "ha_kiosk_ha_geom = on created if title contains \"Home Assistant\" then set geometry 0 0 ${W} ${H}"
+  echo "ha_kiosk_chr_max = on created if app_id contains \"chromium\" then maximize"
+  echo "ha_kiosk_chr_geom = on created if app_id contains \"chromium\" then set geometry 0 0 ${W} ${H}"
   echo "$MARK_END"
 } >>"$WAYFIRE_INI"
 

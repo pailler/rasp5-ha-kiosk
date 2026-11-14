@@ -28,6 +28,10 @@ browser_active() {
   "${HOME}/bin/kiosk-ha-browser-active.sh" 2>/dev/null
 }
 
+browser_ready() {
+  "${HOME}/bin/kiosk-ha-browser-ready.sh" 2>/dev/null
+}
+
 phone_state() {
   curl -fsS -m 8 -H "Authorization: Bearer $TOKEN" \
     "$HA_URL/api/states/$ENTITY" | sed -n 's/.*"state"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1
@@ -157,15 +161,22 @@ fi
 
 GUARD_FILE="${HOME}/.kiosk-display-guard"
 if [ "$want" = idle ] && [ "$in_veille" -eq 0 ] && [ "$state" = "home" ] && ! is_night; then
-  if ! browser_active; then
+  if ! browser_ready; then
     last=0
     [ -f "$GUARD_FILE" ] && last=$(cat "$GUARD_FILE" 2>/dev/null || echo 0)
     last=${last:-0}
-    if [ $((now - last)) -ge 60 ]; then
+    gap=60
+    browser_active && gap=45
+    if [ $((now - last)) -ge "$gap" ]; then
       echo "$now" >"$GUARD_FILE"
-      echo "$(date) garde: kiosque HA absent → relance" >>"$LOG"
+      if browser_active; then
+        echo "$(date) garde: processus chromium sans affichage HA → relance" >>"$LOG"
+      else
+        echo "$(date) garde: kiosque HA absent → relance" >>"$LOG"
+      fi
       export DISPLAY="${DISPLAY:-:0}"
       "${HOME}/bin/kiosk-display-wake.sh" 2>/dev/null || true
+      pkill -f "chromium.*8123" 2>/dev/null || true
       "${HOME}/bin/reveil-kiosk.sh" >>"$LOG" 2>&1 || true
     fi
   else

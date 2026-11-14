@@ -7,8 +7,9 @@ LOG="${HOME}/veille.log"
   echo "=== veille-ram $(date) ==="
   systemctl --user stop firefox-geometry-guard.service 2>/dev/null || true
   pkill -9 -x firefox-esr 2>/dev/null || pkill -9 -f firefox-esr 2>/dev/null || true
-  pkill -x chromium 2>/dev/null || pkill -f "chromium.*8123" 2>/dev/null || true
+  pkill -f "chromium.*8123" 2>/dev/null || pkill -x chromium 2>/dev/null || true
   sleep 1
+  xsetroot -cursor_name left_ptr 2>/dev/null || true
   # Pas de DPMS fiable sur XWayland (Pi 5) : l’écran noir vient surtout de l’arrêt du navigateur.
   echo "Navigateur kiosque arrêté (veille logicielle)"
 } >>"$LOG" 2>&1
